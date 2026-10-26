@@ -79,8 +79,8 @@ IDM/
 ├── src/                       # 코드 (파일별 설명: src/info.md)
 ├── experiments/
 │   └── run_experiments.sh     # REPORT.md 실험 재현 (공개 데이터 다운로드 -> 학습 -> 평가)
-└── results/                   # REPORT.md 에 쓰인 결과 (그림, 지표 json, 학습 로그)
-    └── runs/<run>/            # run별 config.json, loss.csv, eval_*.json, replay_test.json, traj_*.png
+└── results/                   # REPORT.md 에 쓰인 결과. 그림(loss_*.png, traj_<run>_<tag>.png)은 여기 바로 아래
+    └── runs/<run>/            # run별 config.json, loss.csv, eval_*.json, replay_test.json
 
 # install.sh / 실행 시 생기는 폴더 (git 제외)
 .venv/  data/  runs/  third_party/  checkpoints/

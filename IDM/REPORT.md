@@ -115,8 +115,8 @@ DreamGen 계열 IDM을 **우리 GPU(RTX 4060 Ti 8GB)** 에서 ① 돌릴 수 있
 | ResNet-IDM | 2.95 | 3.29 | 4.14 | 2.91 | 1.81 | 5.49 |
 | DreamGen IDM | 4.14 | 4.80 | 6.55 | 4.48 | 3.76 | 6.31 |
 
-![traj sim_top_resnet](results/runs/sim_top_resnet/traj_test.png)
-![traj sim_top_dreamgen_pretrained](results/runs/sim_top_dreamgen_pretrained/traj_test.png)
+![traj sim_top_resnet](results/traj_sim_top_resnet_test.png)
+![traj sim_top_dreamgen_pretrained](results/traj_sim_top_dreamgen_pretrained_test.png)
 
 검정선은 GT 액션, 주황선은 IDM 라벨, 세로 회색선은 16-step 청크 경계입니다.
 
@@ -129,8 +129,8 @@ DreamGen 계열 IDM을 **우리 GPU(RTX 4060 Ti 8GB)** 에서 ① 돌릴 수 있
 | **ResNet-IDM** | **2.50** | **3.30%** | **0.985** | **1.84** | 408 윈도우/s | 0.2 GB |
 | DreamGen IDM (IDM_so100 init) | 3.44 | 4.66% | 0.972 | 2.82 | 33 윈도우/s | 1.2 GB (bf16) |
 
-![traj real_up_resnet](results/runs/real_up_resnet/traj_test.png)
-![traj real_up_dreamgen_pretrained](results/runs/real_up_dreamgen_pretrained/traj_test.png)
+![traj real_up_resnet](results/traj_real_up_resnet_test.png)
+![traj real_up_dreamgen_pretrained](results/traj_real_up_dreamgen_pretrained_test.png)
 
 ### MuJoCo 물리 리플레이 (sim test 5 에피소드, 엔드이펙터 오차)
 
@@ -149,7 +149,7 @@ DreamGen 계열 IDM을 **우리 GPU(RTX 4060 Ti 8GB)** 에서 ① 돌릴 수 있
 | ResNet-IDM | 7.2 | 22.4 | 31.9 | 57.2 | 79.6 | 14.7 | 35.50 |
 | DreamGen IDM | 6.2 | 27.0 | 28.4 | 58.1 | 78.0 | 14.5 | 35.37 |
 
-![traj ours smoke](results/runs/sim_top_resnet/traj_ours_smoke.png)
+![traj ours smoke](results/traj_sim_top_resnet_ours_smoke.png)
 
 ### 해석
 
