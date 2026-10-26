@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "환경을 초기화할 때 물체를 조금씩 흩뜨리는 범위. 값은 씬 XML 의 원래 자리 기준 변화량이다.",
+    "x, y: 이동 범위 (m). rot_deg: 물체 중심을 축으로 한 회전 범위 (도).",
+    "bounds: 물체가 벗어나면 안 되는 트롤리 상판 영역 (m). margin: 물체 사이에 남길 최소 간격 (m).",
+    "obstacles: 움직이지 않지만 겹치면 안 되는 것. bodies 가 여러 개면 한 덩어리로 같이 움직인다.",
+    "범위를 벗어나거나 서로 겹치면 다시 뽑는다. max_tries 번 안에 못 찾으면 원래 자리를 쓴다.",
+    "floor: 바닥을 materials 중 하나로 바꾸고, brightness 배만큼 밝기를, 채널마다 ±tint 만큼 색을 흔든다.",
+    "       texrepeat 는 무늬 반복 횟수 범위 (클수록 무늬가 잘다). 가로:세로 비는 씬 XML 의 재질 값을 따른다.",
+    "light: 모든 조명 밝기에 곱할 값의 범위. floor, light 는 지우면 그 항목을 흔들지 않는다."
+  ],
+  "bounds": {"x": [0.0, 0.935], "y": [0.0, 0.485]},
+  "margin": 0.003,
+  "max_tries": 200,
+  "obstacles": ["so101_base"],
+  "floor": {
+    "geom": "floor",
+    "materials": ["mat_floor", "mat_floor_plain", "mat_floor_wood", "mat_floor_wood_dark",
+                  "mat_floor_marble1", "mat_floor_marble2", "mat_floor_marble3"],
+    "brightness": [0.4, 1.0],
+    "tint": 0.08,
+    "texrepeat": [8, 16]
+  },
+  "light": {"brightness": [0.8, 1.2]},
+  "objects": {
+    "drawer":     {"bodies": ["case_lower", "case_upper"], "x": [0.0, 0.0],     "y": [0.0, 0.0],     "rot_deg": [-5, 5]},
+    "bell":       {"bodies": ["bell_base"],                "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]},
+    "pill_tray":  {"bodies": ["pill_tray"],                "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]},
+    "pill_rest2": {"bodies": ["pill_rest2"],               "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]},
+    "pill_rest3": {"bodies": ["pill_rest3"],               "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]},
+    "cup":        {"bodies": ["cup"],                      "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]},
+    "pouch":      {"bodies": ["pouch"],                    "x": [-0.02, 0.02],  "y": [-0.02, 0.02],  "rot_deg": [-10, 10]}
+  }
+}

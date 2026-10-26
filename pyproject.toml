@@ -1,0 +1,22 @@
+[project]
+name = "jongseol"
+version = "0.1.0"
+description = "종합설계: SO-101 트롤리 MuJoCo 씬과 텔레오퍼레이션"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # attach + keyframe 가 들어간 씬이 3.3 대에서는 로드되지 않는다
+    "mujoco>=3.14",
+    # feetech: SO-101 의 STS3215 서보 버스, dataset: LeRobot 형식 데이터셋 기록
+    "lerobot[feetech,dataset]>=0.6.1",
+    "matplotlib>=3.11",
+    "imageio>=2.38",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["teleop*"]

@@ -1,0 +1,6 @@
+# pyproject.toml 의 dependencies 와 같은 목록 (설치 확인한 버전 이상).
+# 프로젝트 자체(src/teleop)까지 설치하려면: uv pip install -e .
+mujoco>=3.14
+lerobot[feetech,dataset]>=0.6.1
+matplotlib>=3.11
+imageio>=2.38

@@ -1,0 +1,14 @@
+<mujoco model="trolley_scene_demo">
+  <!-- 조작용 씬. scene_trolley.xml 을 그대로 가져오고 액추에이터만 얹는다.
+       뷰어 왼쪽 패널 Control 섹션의 슬라이더로 서랍/벨을 움직일 수 있다.
+       로봇이 직접 서랍을 당기게 할 때는 scene_trolley.xml 을 쓸 것. -->
+  <include file="scene_trolley.xml"/>
+
+  <actuator>
+    <!-- 슬라이더 값 = 서랍이 빠져나온 거리 (m) -->
+    <position name="drawer_lower" joint="drawer_lower_slide" kp="400" kv="25" ctrlrange="0 0.17"/>
+    <position name="drawer_upper" joint="drawer_upper_slide" kp="400" kv="25" ctrlrange="0 0.17"/>
+    <!-- 슬라이더 값 = 벨을 누르는 힘 (N). 0 으로 되돌리면 스프링으로 복귀 -->
+    <general name="bell_press" joint="bell_press" gear="1" ctrlrange="-12 0"/>
+  </actuator>
+</mujoco>

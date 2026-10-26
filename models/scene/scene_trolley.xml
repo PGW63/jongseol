@@ -1,0 +1,270 @@
+<mujoco model="trolley_scene">
+  <!-- 단위: 원본 OBJ 는 cm → mesh scale 0.01 로 m 변환.
+       트롤 상판 윗면 = z 0.73 m, 사용 가능 영역 x[0, 0.935] y[0, 0.485]
+       좌표 원점 = 상판의 서랍 반대편(도마 쪽) 꼭짓점. +X 는 손잡이 쪽(긴 변), +Y 는 짧은 변.
+       로봇(SO-101)은 x=0 변에 등을 대고 +X 를 바라본다. 로봇 기준 좌측 끝 = y 0.485 변.
+       물체 위치는 실측값 (cm): 주석의 (x, y) 는 이 원점 기준.
+       메쉬는 models/mj/, 텍스처는 models/textures/ 를 쓴다 (경로는 이 파일 기준 상대경로). -->
+
+  <compiler meshdir="../mj" texturedir="../textures"
+            angle="radian" autolimits="true" balanceinertia="true"/>
+
+  <option timestep="0.002" integrator="implicitfast" cone="elliptic" impratio="10"/>
+
+  <visual>
+    <global offwidth="1920" offheight="1080"/>
+    <quality shadowsize="4096"/>
+    <headlight diffuse="0.45 0.45 0.45" ambient="0.4 0.4 0.4" specular="0.1 0.1 0.1"/>
+    <map znear="0.01"/>
+  </visual>
+
+  <default>
+    <!-- 보이기만 하는 geom (질량 0, 충돌 없음) -->
+    <default class="vis">
+      <geom type="mesh" group="2" contype="0" conaffinity="0" density="0"/>
+    </default>
+    <!-- 충돌 전용 geom (뷰어에서 기본 숨김: group 3) -->
+    <default class="col">
+      <geom group="3" rgba="0.9 0.3 0.3 0.4" friction="1.0 0.02 0.005"
+            solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    </default>
+    <!-- 메쉬를 그대로 충돌로 쓰는 물체 -->
+    <default class="obj">
+      <geom type="mesh" group="2" density="400" friction="1.0 0.02 0.005"
+            solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    </default>
+    <default class="slide">
+      <joint type="slide" damping="12" frictionloss="2" armature="0.01"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture name="tex_grid" type="2d" builtin="checker" width="512" height="512"
+             rgb1="0.46 0.48 0.52" rgb2="0.54 0.56 0.60"/>
+    <material name="mat_floor" texture="tex_grid" texrepeat="12 12" reflectance="0.08"/>
+    <!-- 환경 초기화 때 바닥을 바꿔 끼우는 후보 (models/automatic.json 의 floor.materials) -->
+    <material name="mat_floor_plain" rgba="0.58 0.58 0.60 1" reflectance="0.05"/>
+
+    <!-- 벨 상부에 붙일 그림 -->
+    <texture name="tex_bell" type="2d" file="bell_top.png"/>
+    <texture name="tex_wood_dark" type="2d" file="wood_dark.png"/>
+    <texture name="tex_wood_light" type="2d" file="wood_light.png"/>
+    <!-- 바닥용: 원목 마루(밝은/어두운), 대리석 사진 3장 -->
+    <texture name="tex_floor_wood" type="2d" file="floor_wood.png"/>
+    <texture name="tex_floor_wood_dark" type="2d" file="floor_wood_dark.png"/>
+    <texture name="tex_floor_marble1" type="2d" file="floor_marble1.png"/>
+    <texture name="tex_floor_marble2" type="2d" file="floor_marble2.png"/>
+    <texture name="tex_floor_marble3" type="2d" file="floor_marble3.png"/>
+    <!-- 약봉투 윗면에 붙일 처방전 스캔 -->
+    <texture name="tex_pouch" type="2d" file="처방전.png"/>
+
+    <!-- 트롤리: 검정 플라스틱 -->
+    <material name="mat_trolley" rgba="0.11 0.11 0.12 1" specular="0.3" shininess="0.25" reflectance="0.02"/>
+    <!-- 벨 받침대: 하늘색 플라스틱 / 벨 상부: 그림 텍스처 -->
+    <material name="mat_bell_base" rgba="0.50 0.78 0.94 1" specular="0.5" shininess="0.4" reflectance="0.05"/>
+    <material name="mat_bell_top" texture="tex_bell" specular="0.3" shininess="0.3"/>
+    <!-- 서랍 케이스: 흰색 플라스틱 -->
+    <material name="mat_case" rgba="0.96 0.96 0.97 1" specular="0.4" shininess="0.3"/>
+    <!-- 서랍 본체: 투명 / 손잡이: 무광 스테인리스 -->
+    <material name="mat_drawer" rgba="0.78 0.87 0.92 0.30" specular="0.6" shininess="0.6"/>
+    <material name="mat_knob" rgba="0.56 0.57 0.59 1" specular="0.2" shininess="0.08" reflectance="0.02"/>
+    <!-- 나무 -->
+    <material name="mat_wood_dark" texture="tex_wood_dark"
+              specular="0.15" shininess="0.1"/>
+    <material name="mat_wood_light" texture="tex_wood_light"
+              specular="0.15" shininess="0.1"/>
+    <material name="mat_floor_wood" texture="tex_floor_wood" texrepeat="10 10" specular="0.1" shininess="0.05"/>
+    <material name="mat_floor_wood_dark" texture="tex_floor_wood_dark" texrepeat="10 10" specular="0.1" shininess="0.05"/>
+    <!-- rgba 로 어둡게: 밝은 대리석은 조명을 받으면 흰색으로 날아가 결이 안 보인다 -->
+    <!-- texrepeat 의 가로:세로 비는 사진 비율에 맞춘 것 (무늬가 늘어나지 않게). 반복 경계가 타일 줄눈처럼 보인다 -->
+    <material name="mat_floor_marble1" texture="tex_floor_marble1" texrepeat="13.4 8" rgba="0.70 0.70 0.70 1"
+              specular="0.3" shininess="0.3" reflectance="0.06"/>
+    <material name="mat_floor_marble2" texture="tex_floor_marble2" texrepeat="8 12" rgba="0.70 0.70 0.70 1"
+              specular="0.3" shininess="0.3" reflectance="0.06"/>
+    <material name="mat_floor_marble3" texture="tex_floor_marble3" texrepeat="8 12" rgba="0.70 0.70 0.70 1"
+              specular="0.3" shininess="0.3" reflectance="0.06"/>
+    <!-- 회색 플라스틱 / 컵 손잡이 실리콘 -->
+    <material name="mat_rest2" rgba="0.25 0.27 0.29 1" specular="0.35" shininess="0.25"/>
+    <material name="mat_cup" rgba="0.63 0.65 0.68 1" specular="0.4" shininess="0.3"/>
+    <material name="mat_cup_handle" rgba="0.29 0.30 0.33 1" specular="0.12" shininess="0.05"/>
+    <material name="mat_pouch" texture="tex_pouch" rgba="0.8 0.8 0.8 1" specular="0.1" shininess="0.05"/>
+
+    <!-- 메나제리 SO-101 에서 색만 바꾼 복사본 -->
+    <model name="so101" file="../so101/so101.xml"/>
+
+    <mesh name="trolley"        file="trolley.obj"            scale="0.01 0.01 0.01"/>
+    <mesh name="case"           file="drawer_case.obj"        scale="0.01 0.01 0.01"/>
+    <mesh name="drawer_l_body"  file="drawer_lower_body.obj"  scale="0.01 0.01 0.01"/>
+    <mesh name="drawer_l_knob"  file="drawer_lower_knob.obj"  scale="0.01 0.01 0.01"/>
+    <mesh name="drawer_u_body"  file="drawer_upper_body.obj"  scale="0.01 0.01 0.01"/>
+    <mesh name="drawer_u_knob"  file="drawer_upper_knob.obj"  scale="0.01 0.01 0.01"/>
+    <mesh name="bell_base"      file="bell_base.obj"          scale="0.01 0.01 0.01"/>
+    <mesh name="bell_top"       file="bell_top.obj"           scale="0.01 0.01 0.01"/>
+    <mesh name="cup_body"       file="cup_body.obj"           scale="0.01 0.01 0.01"/>
+    <mesh name="cup_handle"     file="cup_handle.obj"         scale="0.01 0.01 0.01"/>
+    <mesh name="pill_tray"      file="pill_tray.obj"          scale="0.01 0.01 0.01"/>
+    <mesh name="pill_rest2"     file="pill_rest2.obj"         scale="0.01 0.01 0.01"/>
+    <mesh name="pill_rest3"     file="pill_rest3.obj"         scale="0.01 0.01 0.01"/>
+    <mesh name="pouch"          file="pouch.obj"              scale="0.01 0.01 0.01"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.5 -0.6 2.0" dir="-0.1 0.4 -1" directional="true" diffuse="0.55 0.55 0.55"/>
+    <light pos="1.2 1.0 1.8" dir="-0.4 -0.4 -1" diffuse="0.35 0.35 0.35"/>
+    <geom name="floor" type="plane" size="4 4 0.05" material="mat_floor"/>
+
+    <camera name="overview" pos="0.47 -1.25 1.55" xyaxes="1 0 0 0 0.62 0.78"/>
+    <camera name="top"      pos="0.47 0.24 1.95" xyaxes="1 0 0 0 1 0"/>
+    <camera name="drawers"  pos="0.12 -0.45 1.15" xyaxes="1 0 0 0 0.6 0.8"/>
+    <!-- 원점 꼭짓점 바로 위, 상판에서 0.555 m. +X 를 보던 카메라를 z 축으로 35도(yaw, +Y 쪽),
+         y 축으로 55도(pitch, 아래로) 돌린 자세. 롤 없음 -->
+    <camera name="corner"   pos="0 0 1.285" xyaxes="0.5736 -0.8192 0 0.6710 0.4698 0.5736" fovy="45"
+            resolution="640 480"/>
+    <!-- 조작자용 화면 두 개 (data_mj 위쪽). 데이터셋에는 넣지 않는다.
+         left: 로봇 왼쪽(+Y, 트롤리 옆)에서 작업 영역을 옆으로 바라본다. drawer_top: 서랍 위에서 수직으로 내려다본다 (화면 위쪽이 +X) -->
+    <camera name="left" pos="0.3000 0.7250 0.9810" xyaxes="-1.0000 -0.0000 0.0000 0.0000 -0.2932 0.9561" fovy="45" resolution="480 360"/>
+    <camera name="drawer_top" pos="0.40 0.17 1.40" xyaxes="0 -1 0 1 0 0" fovy="45" resolution="480 360"/>
+
+    <!-- ===================== 트롤리 (고정) ===================== -->
+    <body name="trolley" pos="0 0 0">
+      <geom class="vis" mesh="trolley" material="mat_trolley"/>
+
+      <geom class="col" name="trolley_top"   type="box" pos="0.4675 0.2425 0.715" size="0.4675 0.2425 0.015"/>
+      <geom class="col" name="trolley_shelf" type="box" pos="0.4675 0.2425 0.175" size="0.4675 0.2425 0.015"/>
+      <geom class="col" name="post_00" type="box" pos="0.015 0.015 0.35" size="0.015 0.015 0.35"/>
+      <geom class="col" name="post_01" type="box" pos="0.015 0.470 0.35" size="0.015 0.015 0.35"/>
+      <geom class="col" name="post_10" type="box" pos="0.920 0.015 0.35" size="0.015 0.015 0.35"/>
+      <geom class="col" name="post_11" type="box" pos="0.920 0.470 0.35" size="0.015 0.015 0.35"/>
+      <geom class="col" name="handle_bar"  type="box" pos="1.010 0.2425 0.775" size="0.020 0.2425 0.015"/>
+      <geom class="col" name="handle_armL" type="box" pos="0.9475 0.015 0.775" size="0.0425 0.015 0.015"/>
+      <geom class="col" name="handle_armR" type="box" pos="0.9475 0.470 0.775" size="0.0425 0.015 0.015"/>
+
+      <!-- ============ SO-101 ============
+           베이스 풋프린트 (base 프레임): x[-0.031, 0.0646] y[-0.0555, 0.0555] z[-0.0024, ...]
+           뒷면이 x=0 변에 닿고, 오른쪽 면이 y=0.107 -->
+      <body name="so101_mount" pos="0.031 0.1625 0.7324">
+        <attach model="so101" body="base" prefix="so101_"/>
+      </body>
+
+      <!-- ============ 서랍 유닛: 케이스 2단 적층 ============
+           케이스 로컬 좌표: x[-0.15,0] y[0,0.20] z[0,0.09]
+           서랍은 로컬 -Y 방향으로 빠져나옴 (손잡이 노브가 y=-0.014 쪽)
+           z 로 -90도 돌려서 월드 -X (로봇 쪽) 로 열린다. 케이스가 차지하는 영역 x[0.37,0.57] y[0.097,0.247]
+           서랍 body pos 는 케이스 안쪽 리브 개구부에 맞춘 정렬값 -->
+
+      <body name="case_lower" pos="0.37 0.097 0.73" euler="0 0 -1.5708">
+        <geom class="vis" mesh="case" material="mat_case"/>
+        <geom class="col" name="case_lower_col" type="box" pos="-0.075 0.10 0.045" size="0.075 0.10 0.045"/>
+
+        <body name="drawer_lower" pos="-0.0032 0 0.0022">
+          <joint class="slide" name="drawer_lower_slide" axis="0 -1 0" range="0 0.17"/>
+          <geom class="vis" mesh="drawer_l_body" material="mat_drawer"/>
+          <geom class="vis" mesh="drawer_l_knob" material="mat_knob"/>
+          <geom class="col" name="drawer_lower_box" type="box" pos="-0.072 0.097 0.043" size="0.069 0.094 0.040"/>
+          <geom class="col" name="drawer_lower_knob" type="cylinder"
+                fromto="-0.072 -0.014 0.043  -0.072 0.000 0.043" size="0.010"/>
+        </body>
+      </body>
+
+      <body name="case_upper" pos="0.37 0.097 0.82" euler="0 0 -1.5708">
+        <geom class="vis" mesh="case" material="mat_case"/>
+        <geom class="col" name="case_upper_col" type="box" pos="-0.075 0.10 0.045" size="0.075 0.10 0.045"/>
+
+        <body name="drawer_upper" pos="-0.0032 0 0.0022">
+          <joint class="slide" name="drawer_upper_slide" axis="0 -1 0" range="0 0.17"/>
+          <geom class="vis" mesh="drawer_u_body" material="mat_drawer"/>
+          <geom class="vis" mesh="drawer_u_knob" material="mat_knob"/>
+          <geom class="col" name="drawer_upper_box" type="box" pos="-0.072 0.097 0.043" size="0.069 0.094 0.040"/>
+          <geom class="col" name="drawer_upper_knob" type="cylinder"
+                fromto="-0.072 -0.014 0.068  -0.072 0.000 0.068" size="0.010"/>
+        </body>
+      </body>
+
+      <!-- ============ 벨: 받침대 고정 + 상부 prismatic(Z) ============ -->
+      <!-- 중심 (0.07, 0.4135): 좌측 끝(y=0.485)에서 3cm 띄움 -->
+      <body name="bell_base" pos="0.07 0.4135 0.73">
+        <geom class="obj" mesh="bell_base" material="mat_bell_base"/>
+
+        <body name="bell_top" pos="0 0 0">
+          <joint name="bell_press" type="slide" axis="0 0 1" range="-0.006 0"
+                 stiffness="1500" damping="6" springref="0" armature="0.002"/>
+          <geom class="obj" mesh="bell_top" material="mat_bell_top" density="600"/>
+        </body>
+      </body>
+
+      <!-- ============ 고정 집기류 ============ -->
+      <!-- 중심 (0.22, 0.065) → x[0.097,0.343] y[0.013,0.118] -->
+      <body name="pill_rest3" pos="0.34345 0.0125 0.73">
+        <geom class="obj" mesh="pill_rest3" material="mat_wood_dark"/>
+      </body>
+
+      <!-- 중심 (0.26, 0.22) -->
+      <body name="pill_rest2" pos="0.26 0.22 0.73">
+        <geom class="obj" mesh="pill_rest2" material="mat_rest2"/>
+      </body>
+    </body>
+
+    <!-- ============ 움직이는 물체 (freejoint) ============ -->
+    <!-- 컵 중심: x=0.36, 좌측 끝에서 0.10. z 로 -130도 (손잡이가 로봇 쪽 대각선) -->
+    <body name="cup" pos="0.36 0.385 0.7305" quat="0.4226183 0 0 -0.9063078">
+      <freejoint name="cup_free"/>
+      <!-- 메쉬를 그대로 충돌에 쓰면 볼록 껍질이 되어 속이 찬 원기둥이 된다. 안에 물건을 넣을 수 있게
+           보이는 메쉬와 따로 바닥(두께 0.5cm) + 벽 조각 16개를 둔다. 벽은 바깥 반지름 3.7cm 는 그대로,
+           두께만 실제(0.2cm)보다 두꺼운 0.4cm 로 잡았다 (얇으면 그리퍼가 뚫고 들어간다). 전체 약 70 g -->
+      <geom class="vis" mesh="cup_body" material="mat_cup"/>
+      <geom class="col" name="cup_bottom" type="cylinder" pos="0 0 0.0025" size="0.037 0.0025" density="600"/>
+      <geom class="col" name="cup_wall_00" type="box" pos="0.03500 0.00000 0.0475" euler="0 0 0.00000" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_01" type="box" pos="0.03234 0.01339 0.0475" euler="0 0 0.39270" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_02" type="box" pos="0.02475 0.02475 0.0475" euler="0 0 0.78540" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_03" type="box" pos="0.01339 0.03234 0.0475" euler="0 0 1.17810" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_04" type="box" pos="0.00000 0.03500 0.0475" euler="0 0 1.57080" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_05" type="box" pos="-0.01339 0.03234 0.0475" euler="0 0 1.96350" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_06" type="box" pos="-0.02475 0.02475 0.0475" euler="0 0 2.35619" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_07" type="box" pos="-0.03234 0.01339 0.0475" euler="0 0 2.74889" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_08" type="box" pos="-0.03500 0.00000 0.0475" euler="0 0 3.14159" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_09" type="box" pos="-0.03234 -0.01339 0.0475" euler="0 0 3.53429" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_10" type="box" pos="-0.02475 -0.02475 0.0475" euler="0 0 3.92699" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_11" type="box" pos="-0.01339 -0.03234 0.0475" euler="0 0 4.31969" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_12" type="box" pos="-0.00000 -0.03500 0.0475" euler="0 0 4.71239" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_13" type="box" pos="0.01339 -0.03234 0.0475" euler="0 0 5.10509" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_14" type="box" pos="0.02475 -0.02475 0.0475" euler="0 0 5.49779" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="col" name="cup_wall_15" type="box" pos="0.03234 -0.01339 0.0475" euler="0 0 5.89049" size="0.002 0.0076 0.0425" density="600"/>
+      <geom class="obj" mesh="cup_handle" material="mat_cup_handle" density="300"/>
+    </body>
+
+    <!-- 약봉투: 가까운 꼭짓점 (0.41, 0.26), z 로 -90도 (긴 변이 Y 방향) → x[0.41,0.56] y[0.26,0.47] -->
+    <body name="pouch" pos="0.41 0.26 0.7320" quat="0.7071068 0 0 -0.7071068">
+      <freejoint name="pouch_free"/>
+      <geom class="vis" mesh="pouch" material="mat_pouch"/>
+      <geom class="col" name="pouch_col" type="box" pos="-0.105 0.075 0.0005" size="0.105 0.075 0.0015" density="300"/>
+    </body>
+
+    <!-- 약두는곳: 좌측 끝에 접함, 가까운 변 x=0.15. z 로 90도 돌려 짧은 변(12cm)이 X 방향 → x[0.15,0.27] y[0.31,0.485]
+         메쉬를 그대로 충돌에 쓰면 볼록 껍질이 되어 속이 찬 블록이 된다. 그러면 벽을 집을 수 없으므로
+         보이는 메쉬와 따로 바닥(두께 1.5cm) + 벽 4개(두께 0.7cm, 높이 3.8cm)를 상자로 둔다.
+         로컬 좌표: x[-0.175,0] y[0,0.12] z[0,0.038]. 밀도 150 → 약 60 g -->
+    <body name="pill_tray" pos="0.27 0.485 0.7305" quat="0.7071068 0 0 0.7071068">
+      <freejoint name="pill_tray_free"/>
+      <geom class="vis" mesh="pill_tray" material="mat_wood_light"/>
+      <geom class="col" name="tray_floor"  type="box" pos="-0.0875 0.06 0.0075"    size="0.0875 0.06 0.0075"   density="150"/>
+      <geom class="col" name="tray_wall_x0" type="box" pos="-0.0035 0.06 0.0265"   size="0.0035 0.06 0.0115"   density="150"/>
+      <geom class="col" name="tray_wall_x1" type="box" pos="-0.1715 0.06 0.0265"   size="0.0035 0.06 0.0115"   density="150"/>
+      <geom class="col" name="tray_wall_y0" type="box" pos="-0.0875 0.0034 0.0265" size="0.0805 0.0034 0.0115" density="150"/>
+      <geom class="col" name="tray_wall_y1" type="box" pos="-0.0875 0.1166 0.0265" size="0.0805 0.0034 0.0115" density="150"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <!-- 서랍 ↔ 케이스, 벨 상부 ↔ 받침대 는 상시 관통이므로 제외 -->
+    <exclude body1="case_lower" body2="drawer_lower"/>
+    <exclude body1="case_upper" body2="drawer_upper"/>
+    <exclude body1="bell_base"  body2="bell_top"/>
+  </contact>
+
+  <!-- qpos 순서가 바뀌면 keyframe 도 같이 고칠 것 -->
+  <keyframe>
+    <!-- qpos: [SO-101(6), 서랍하, 서랍상, 벨, 컵(7), 약봉투(7), 약두는곳(7)] -->
+    <key name="closed" qpos="0 0 0 0 0 0   0 0 0   0.36 0.385 0.7305 0.4226183 0 0 -0.9063078   0.41 0.26 0.732 0.7071068 0 0 -0.7071068   0.27 0.485 0.7305 0.7071068 0 0 0.7071068"/>
+    <key name="open"   qpos="0 0 0 0 0 0   0.15 0.15 0   0.36 0.385 0.7305 0.4226183 0 0 -0.9063078   0.41 0.26 0.732 0.7071068 0 0 -0.7071068   0.27 0.485 0.7305 0.7071068 0 0 0.7071068"/>
+  </keyframe>
+</mujoco>

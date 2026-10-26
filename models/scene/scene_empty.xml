@@ -1,0 +1,33 @@
+<mujoco model="empty_scene">
+  <!-- 바닥과 SO-101 만 있는 빈 월드. 리더암 연결 확인용 (src/tests/check_connection_with_leader.py).
+       로봇 관절/액추에이터 이름은 트롤리 씬과 같게 so101_ 접두사가 붙는다. -->
+
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.002" integrator="implicitfast" cone="elliptic" impratio="10"/>
+
+  <visual>
+    <global offwidth="1920" offheight="1080"/>
+    <headlight diffuse="0.45 0.45 0.45" ambient="0.4 0.4 0.4" specular="0.1 0.1 0.1"/>
+    <map znear="0.01"/>
+  </visual>
+
+  <asset>
+    <texture name="tex_grid" type="2d" builtin="checker" width="512" height="512"
+             rgb1="0.46 0.48 0.52" rgb2="0.54 0.56 0.60"/>
+    <material name="mat_floor" texture="tex_grid" texrepeat="12 12" reflectance="0.08"/>
+    <model name="so101" file="../so101/so101.xml"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.3 -0.6 1.5" dir="-0.1 0.4 -1" directional="true" diffuse="0.55 0.55 0.55"/>
+    <geom name="floor" type="plane" size="2 2 0.05" material="mat_floor"/>
+
+    <camera name="view" pos="0.55 -0.45 0.40" xyaxes="0.748 0.664 0 -0.280 0.316 0.907"/>
+
+    <!-- 베이스 밑면(z=-0.0024)이 바닥에 닿게 -->
+    <body name="so101_mount" pos="0 0 0.0024">
+      <attach model="so101" body="base" prefix="so101_"/>
+    </body>
+  </worldbody>
+</mujoco>

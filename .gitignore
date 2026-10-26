@@ -1,0 +1,27 @@
+# 가상환경 / uv 캐시 (scripts/auto_install.sh 로 다시 만들 수 있음)
+.venv/
+.venv-*/
+.uv-cache/
+
+# 파이썬 빌드 부산물
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# 텔레옵으로 모은 LeRobot 데이터셋 (용량 큼, 필요하면 HF Hub 로 공유)
+datasets/
+
+# 카메라 캘리브레이션 중 캡쳐한 이미지 (결과값은 각 config.py 에 저장됨)
+src/camera-cali/*/captures/
+
+# OS / 에디터
+.DS_Store
+.vscode/
+.idea/
+
+# 로그 / 비밀값
+*.log
+.env
