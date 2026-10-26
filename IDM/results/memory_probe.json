@@ -1,0 +1,152 @@
+[
+  {
+    "trainable_M": 612.196352,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.246433258056641,
+    "name": "A. 원본 레시피 (fp32+AdamW, bs16)",
+    "model": "dreamgen_pretrained",
+    "bs": 16,
+    "flags": {}
+  },
+  {
+    "trainable_M": 612.196352,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.174386024475098,
+    "name": "B. 원본 레시피 bs4",
+    "model": "dreamgen_pretrained",
+    "bs": 4,
+    "flags": {}
+  },
+  {
+    "trainable_M": 612.196352,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.209341049194336,
+    "name": "C. 원본 레시피 bs1",
+    "model": "dreamgen_pretrained",
+    "bs": 1,
+    "flags": {}
+  },
+  {
+    "trainable_M": 612.196352,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.234253883361816,
+    "name": "D. +grad ckpt bs4",
+    "model": "dreamgen_pretrained",
+    "bs": 4,
+    "flags": {
+      "grad_ckpt": true
+    }
+  },
+  {
+    "trainable_M": 480.013344,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.2229108810424805,
+    "name": "E. +grad ckpt +single-emb bs4",
+    "model": "dreamgen_pretrained",
+    "bs": 4,
+    "flags": {
+      "grad_ckpt": true,
+      "single_embodiment": true
+    }
+  },
+  {
+    "trainable_M": 480.013344,
+    "ok": true,
+    "peak_gb": 4.8059844970703125,
+    "reserved_gb": 4.943359375,
+    "sec_per_step": 0.4934224605560303,
+    "name": "F. +grad ckpt +single-emb +8bit AdamW bs8",
+    "model": "dreamgen_pretrained",
+    "bs": 8,
+    "flags": {
+      "grad_ckpt": true,
+      "single_embodiment": true,
+      "optim": "adamw8bit"
+    }
+  },
+  {
+    "trainable_M": 480.013344,
+    "ok": true,
+    "peak_gb": 5.29337215423584,
+    "reserved_gb": 5.33203125,
+    "sec_per_step": 0.9301973819732666,
+    "name": "G. +grad ckpt +single-emb +8bit AdamW bs16",
+    "model": "dreamgen_pretrained",
+    "bs": 16,
+    "flags": {
+      "grad_ckpt": true,
+      "single_embodiment": true,
+      "optim": "adamw8bit"
+    }
+  },
+  {
+    "trainable_M": 480.013344,
+    "ok": true,
+    "peak_gb": 6.861761093139648,
+    "reserved_gb": 7.0,
+    "sec_per_step": 1.7754245758056642,
+    "name": "G2. +grad ckpt +single-emb +8bit AdamW bs32",
+    "model": "dreamgen_pretrained",
+    "bs": 32,
+    "flags": {
+      "grad_ckpt": true,
+      "single_embodiment": true,
+      "optim": "adamw8bit"
+    }
+  },
+  {
+    "trainable_M": 612.196352,
+    "ok": true,
+    "peak_gb": 6.256106376647949,
+    "reserved_gb": 6.431640625,
+    "sec_per_step": 0.9464553833007813,
+    "name": "G3. +grad ckpt +8bit AdamW (single-emb 없음) bs16",
+    "model": "dreamgen_pretrained",
+    "bs": 16,
+    "flags": {
+      "grad_ckpt": true,
+      "optim": "adamw8bit"
+    }
+  },
+  {
+    "trainable_M": 480.013344,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.041335105895996,
+    "name": "H. single-emb +8bit AdamW (ckpt 없음) bs8",
+    "model": "dreamgen_pretrained",
+    "bs": 8,
+    "flags": {
+      "single_embodiment": true,
+      "optim": "adamw8bit"
+    }
+  },
+  {
+    "trainable_M": 321.431552,
+    "ok": false,
+    "error": "CUDA OOM",
+    "peak_gb": 7.1890387535095215,
+    "name": "I. 비전 동결(부분학습) bs16",
+    "model": "dreamgen_pretrained",
+    "bs": 16,
+    "flags": {
+      "freeze_vision": true
+    }
+  },
+  {
+    "trainable_M": 18.711878,
+    "ok": true,
+    "peak_gb": 2.131497383117676,
+    "reserved_gb": 2.345703125,
+    "sec_per_step": 0.13009700775146485,
+    "name": "J. ResNet IDM bs64",
+    "model": "resnet",
+    "bs": 64,
+    "flags": {}
+  }
+]

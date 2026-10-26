@@ -1,0 +1,13 @@
+# DreamGen IDM 추가 의존성. ./install.sh --dreamgen 일 때만 설치한다.
+# 버전은 GR00T-Dreams(ec3881d) IDM 코드와 실험에서 확인한 조합.
+transformers==4.45.2
+diffusers==0.30.2
+hydra-core
+omegaconf
+dm-tree
+einops
+sentencepiece
+safetensors
+pydantic
+protobuf<4
+bitsandbytes

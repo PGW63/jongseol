@@ -1,104 +1,62 @@
-# 종합설계 
+# 종합설계
 
-## 실제 로봇 연결
-### 환경 설치
-[자동 설치](scripts/auto_install.sh)
+SO-101 로봇팔로 트롤리 위 약 전달 작업(약 파우치 확인, 서랍에서 약 꺼내기, 컵에 붓고 젓기, 벨 누르기, 트레이·컵 건네기)을 학습시키는 프로젝트입니다.
+
+MuJoCo 시뮬레이션에서 리더암 텔레옵으로 시연 데이터를 모으고, IDM(Inverse Dynamics Model)으로 액션이 없는 영상(비디오 생성 모델 결과 등)에 액션 라벨을 붙여 정책 학습 데이터를 늘립니다.
+
+## 폴더 구조
 
 ```
-./scripts/auto_install.sh
-```
-## 캘리브레이션
-### arm 정규화
-```
-.venv/bin/lerobot-calibrate \
-  --teleop.type=so101_leader \
-  --teleop.port=$HOME/dev/so101_leader_mj \
-  --teleop.id=so101_leader_mj
-```
-> [!warning] udev 포트 다름 주의
-> 
-> 가이드에 나오는 udev이름이 다르니 알잘딱 필요
-
-
-[가이드 영상](https://www.youtube.com/watch?v=vDS5eLKd9lM&t=5s)
-
-[가이드 문서](https://wikidocs.net/328749)
-
-### camera intrinsic calibration
-모든 카메라의 포트 번호는 [config파일](src/camera-cali/)에서 각각 지정해주어야 한다.
-- head
-```
-.venv/bin/python src/camera-cali/intrinsic_cali.py top --board 9x6 --square 0.025
+jongseol/
+├── README.md       # 이 문서 (전체 소개)
+├── simulation/     # MuJoCo 씬, 리더암 텔레옵, 카메라 캘리브레이션, 데이터 취득
+├── IDM/            # Inverse Dynamics Model 학습 · 평가 · 추론
+└── datasets/       # LeRobot 포맷 데이터셋 (git 제외). simulation 이 저장하고 IDM 이 읽는다
 ```
 
-- wrist
-```
-.venv/bin/python src/camera-cali/intrinsic_cali.py wrist --board 9x6 --square 0.025
+| 폴더 | 내용 | 가상환경 | 문서 |
+|---|---|---|---|
+| `simulation/` | 트롤리 씬과 SO-101 모델, 환경 랜덤화, 리더암 연결, 카메라 캘리브레이션, `data_mj.py` 데이터 취득 | `simulation/.venv` (MuJoCo, LeRobot) | [simulation/README.md](simulation/README.md) |
+| `IDM/` | 두 프레임으로 16스텝 액션을 예측하는 IDM. 학습, held-out 평가, 라벨 없는 영상 추론 | `IDM/.venv` (torch) | [IDM/README.md](IDM/README.md), [IDM/REPORT.md](IDM/REPORT.md) |
+| `datasets/` | 녹화한 데이터셋 또는 외부에서 받은 데이터셋 | | |
+
+`simulation` 과 `IDM` 은 torch 버전이 달라서 가상환경을 따로 씁니다. 각 폴더의 명령은 그 폴더 안에서 실행합니다.
+
+## 설치
+
+```bash
+cd simulation && ./scripts/auto_install.sh   # simulation/.venv
+cd ../IDM && ./install.sh                     # IDM/.venv
 ```
 
-### head cam to robot base extrinsic calibration 
-모든 카메라의 포트 번호는 [config파일](src/camera-cali/)에서 각각 지정해주어야 한다.
-```
-.venv/bin/python src/camera-cali/headCam_to_Base.py --board 9x6 --square 0.025 --origin 0.30 0.20 --yaw 0
-```
-## 시뮬레이션 환경
+## 전체 흐름
 
-### 모델링
-![modeling manual](assets/modeling_manual.png)
-1. mesh 생성 - Fusion, [MeshAI](https://www.meshy.ai/ko?utm_source=google&utm_medium=cpc&utm_campaign=23975044931&utm_content=204617268384&utm_term=meshai&gad_source=1&gad_campaignid=23975044931&gbraid=0AAAAApPWZYgakItlVSVd3BfGgmvEmJjc3&gclid=CjwKCAjwrbfWBhAeEiwAc2e6Pp-0cezlca5-rMgsngFRUg6QcYgm8J7gPp_p_0KEDPlcKeWrKwqnaRoCmjoQAvD_BwE)
-2. texture 입히기 - Blender or MuJoCo
-3. Joint 생성(서랍같은 녀석들) - MuJoCo
+1. **데이터 취득** (`simulation/`): 리더암으로 시뮬레이션 속 SO-101을 조작해 녹화합니다. 결과는 `datasets/<이름>/` 에 LeRobot 포맷으로 저장됩니다.
+   ```bash
+   cd simulation
+   .venv/bin/python src/data_mj.py --task "작업 설명"
+   ```
+   외부 데이터셋을 쓸 때도 `datasets/` 아래에 두면 됩니다 (LeRobot v3, 6차원 `action`/`observation.state`).
 
+2. **IDM 학습** (`IDM/`): top 카메라 영상과 액션으로 학습합니다.
+   ```bash
+   cd IDM
+   .venv/bin/python src/prepare_data.py --root ../datasets/<데이터셋> --camera observation.images.top --out data/cache/ours_top
+   .venv/bin/python src/train.py --model resnet --data data/cache/ours_top --out runs/ours_top_resnet \
+     --n-test 10 --bs 64 --lr 3e-4 --wd 1e-4 --steps 6000 --eval-every 500 --save
+   .venv/bin/python src/evaluate.py --run runs/ours_top_resnet
+   ```
 
-### 환경 배치 Randomization
-- 물건들의 Transformation
-- 조명변화
-- 바닥 Textrue
-```
-.venv/bin/python src/tests/randomize_env.py
-```
-![env-randomization](assets/env_randomize.gif)
+3. **라벨 없는 영상 추론** (`IDM/`): mp4 폴더나 LeRobot 데이터셋에 pseudo-label 을 붙입니다.
+   ```bash
+   .venv/bin/python src/infer.py --run runs/ours_top_resnet --input <mp4 폴더 또는 ../datasets/<데이터셋>> \
+     [--camera observation.images.top] --out <출력 폴더>
+   ```
 
+자세한 옵션과 주의사항(카메라·fps 맞추기, 캘리브레이션 유지 등)은 각 폴더의 README를 보세요.
 
-### 연결 확인
-```
-.venv/bin/python src/tests/check_connection_with_leader.py
-```
-![test](assets/check_calib_mj.gif)
+## 참고
 
-
-
-### 데이터 취득
-> [!NOTE] 기본 instructions
->
-> Check the medication pouch. Then, take the medication from the drawer and place it on the left tray. Place the ointment from the top of the drawer on the left tray, followed by the pill bottle. Put the eye-drop bottle in front of the drawer into the cup. Pour the medicine from the bottle on the right tray into the cup, then stir the contents. Press the bell, then hand over the left tray, followed by the cup.
-
-시뮬레이션 키기 & 텔레옵 연결
-```
-.venv/bin/python   src/teleop_mj.py --headless
-```
-
-데이터 취득
-```
-.venv/bin/python src/data_mj.py --task "작업 설명"
-```
-## 구현 reference
 1. [so101-simstudio](https://github.com/rocPAI-Forge/so101-simstudio)
-2. [robo-suite](https://github.com/ARISE-Initiative/robosuite)
-
-
-# TODO
-- [ ] wrist view, top view calibration하기
-- [ ] top view to robot case extrinsic calibration 하기
-- [ ] calibration값 무조코에 적용하기
-- [ ] replay 구현해서, 실제 궤적 데이터와 얼마나 차이 나는지 확인하기
-- [ ] 약 및 스틱 모델링하기
-- [ ] 약 및 스틱 무조코 환경에 넣기
-- [ ] 약 및 스틱 위치 랜덤화하기
-- [ ] 시나리오에 맞게 데이터 취득하기
-
----
-
-```
-.venv/bin/python src/data_mj.py --task "Check the medication pouch. Then, take the medication from the drawer and place it on the left tray. Place the ointment from the top of the drawer on the left tray, followed by the pill bottle. Put the eye-drop bottle in front of the drawer into the cup. Pour the medicine from the bottle on the right tray into the cup, then stir the contents. Press the bell, then hand over the left tray, followed by the cup."
-```
+2. [robosuite](https://github.com/ARISE-Initiative/robosuite)
+3. [DreamGen](https://arxiv.org/abs/2505.12705)

@@ -41,6 +41,8 @@ from teleop.leader_mj import LeaderSim, Pacer, SO101LeaderMjConfig
 ROOT = Path(__file__).resolve().parents[1]
 SCENE = ROOT / "models" / "scene" / "scene_trolley.xml"
 RANDOMIZE = ROOT / "models" / "automatic.json"
+# 데이터셋은 저장소 최상위 datasets/ 에 둔다 (IDM 등 다른 폴더에서도 같이 쓴다)
+DATASETS = ROOT.parent / "datasets"
 
 # 데이터셋 이미지 키 -> 씬의 카메라 이름
 CAMERAS = {"top": "corner", "wrist": "so101_wrist_cam"}
@@ -274,12 +276,12 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--task", default="trolley manipulation", help="에피소드에 붙일 작업 설명")
     ap.add_argument("--repo-id", default="local/so101_trolley", help="데이터셋 이름")
-    ap.add_argument("--root", type=Path, help="저장 폴더 (기본: datasets/<repo-id 의 뒷부분>)")
+    ap.add_argument("--root", type=Path, help="저장 폴더 (기본: <저장소 최상위>/datasets/<repo-id 의 뒷부분>)")
     ap.add_argument("--port", help="리더암 포트 (기본: config 의 고정 이름)")
     ap.add_argument("--no-randomize", action="store_true", help="환경을 초기화할 때 물체를 흩뜨리지 않고 원래 자리에 둔다")
     ap.add_argument("--seed", type=int, help="물체 배치 난수 시드")
     args = ap.parse_args()
-    root = args.root or ROOT / "datasets" / args.repo_id.split("/")[-1]
+    root = args.root or DATASETS / args.repo_id.split("/")[-1]
 
     cfg = SO101LeaderMjConfig(
         xml_path=SCENE,

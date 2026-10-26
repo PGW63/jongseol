@@ -8,6 +8,9 @@ from lerobot.teleoperators.so_leader import SOLeaderConfig
 
 from teleop.constants import default_port
 
+# simulation/ (src/teleop/leader_mj/config.py 기준)
+SIM_ROOT = Path(__file__).resolve().parents[3]
+
 
 # SOLeaderConfig 를 상속하므로 LeRobot 의 SOLeader 에 그대로 넘길 수 있다.
 @TeleoperatorConfig.register_subclass("so101_leader_mj")
@@ -24,12 +27,12 @@ class SO101LeaderMjConfig(TeleoperatorConfig, SOLeaderConfig):
     # 캘리브레이션 파일 이름 (lerobot-calibrate 의 --teleop.id 와 같아야 한다)
     id: str | None = "so101_leader_mj"
 
-    # 리더를 연결할 씬 (프로젝트 루트 기준)
-    xml_path: Path = Path("models/scene/scene_trolley.xml")
+    # 리더를 연결할 씬 (실행 위치와 무관하게 simulation/models 기준)
+    xml_path: Path = SIM_ROOT / "models" / "scene" / "scene_trolley.xml"
     # 씬에서 SO-101 관절/액추에이터 이름 앞에 붙는 접두사 (attach prefix)
     joint_prefix: str = "so101_"
 
-    # 환경을 초기화할 때 물체를 흩뜨리는 범위 파일 (프로젝트 루트 기준). None 이면 항상 원래 자리.
+    # 환경을 초기화할 때 물체를 흩뜨리는 범위 파일 (상대경로면 실행 위치 기준). None 이면 항상 원래 자리.
     randomize_path: Path | None = None
     randomize_seed: int | None = None
 

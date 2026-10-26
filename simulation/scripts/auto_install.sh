@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 실행 환경을 만든다: 프로젝트 루트에 .venv 를 만들고 pyproject.toml 의 패키지를 설치한다.
+# 실행 환경을 만든다: simulation/ 에 .venv 를 만들고 pyproject.toml 의 패키지를 설치한다.
 #
 #   ./scripts/auto_install.sh
 #

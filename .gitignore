@@ -15,7 +15,7 @@ dist/
 datasets/
 
 # 카메라 캘리브레이션 중 캡쳐한 이미지 (결과값은 각 config.py 에 저장됨)
-src/camera-cali/*/captures/
+simulation/src/camera-cali/*/captures/
 
 # OS / 에디터
 .DS_Store

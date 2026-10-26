@@ -1,0 +1,9 @@
+# IDM 기본 환경 (ResNet-IDM 학습 / 평가 / 라벨링). 루트 .venv 와 분리된 IDM/.venv 에 설치한다.
+# torch 는 install.sh 가 CUDA 휠 인덱스에서 따로 설치한다 (torch==2.5.1, torchvision==0.20.1, cu121).
+numpy<2
+pandas
+pyarrow<18
+av
+pillow
+matplotlib
+huggingface_hub
