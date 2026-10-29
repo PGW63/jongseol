@@ -76,7 +76,7 @@ IDM/
 ├── install.sh                 # 환경 설치 (--dreamgen 으로 DreamGen 추가)
 ├── requirements.txt           # 기본 패키지
 ├── requirements-dreamgen.txt  # DreamGen 추가 패키지
-├── src/                       # 코드 (파일별 설명: src/info.md)
+├── src/                       # 코드 (파일별 설명: src/README.md)
 ├── experiments/
 │   └── run_experiments.sh     # REPORT.md 실험 재현 (공개 데이터 다운로드 -> 학습 -> 평가)
 └── results/                   # REPORT.md 에 쓰인 결과. 그림(loss_*.png, traj_<run>_<tag>.png)은 여기 바로 아래
