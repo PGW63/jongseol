@@ -2,7 +2,7 @@
 
 **MuJoCo 텔레옵으로 모은 시연 데이터와 IDM(Inverse Dynamics Model) pseudo-label로, 트롤리 위 약 전달 작업 정책 학습 데이터를 늘리는 프로젝트입니다.**
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![MuJoCo](https://img.shields.io/badge/MuJoCo-sim-0B5FFF)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5-EE4C2C?logo=pytorch&logoColor=white)
 ![LeRobot](https://img.shields.io/badge/LeRobot-v3-FFD21E)
