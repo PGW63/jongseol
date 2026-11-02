@@ -43,12 +43,23 @@ cd IDM
 .venv/bin/python src/evaluate.py --run runs/ours_top_resnet
 ```
 
+카메라 여러 개를 쓰려면 캐시를 만들 때 `--camera` 에 키를 여러 개 주고, 학습 때 `--cameras` 로 고릅니다. 한 캐시로 카메라 구성을 바꿔 가며 비교할 수 있습니다.
+
+```bash
+.venv/bin/python src/prepare_data.py --root ../datasets/<데이터셋> \
+  --camera observation.images.top observation.images.wrist --out data/cache/ours
+.venv/bin/python src/train.py --model resnet --data data/cache/ours --cameras top wrist --out runs/ours_topwrist_resnet ...
+
+# 같은 test 에피소드로 평가한 run 비교 -> results/<name>_ep<e>.png, <name>_rmse.png, <name>.json
+.venv/bin/python src/compare_runs.py --runs runs/ours_top_resnet runs/ours_topwrist_resnet --labels "top only" "top + wrist" --name ours_cam
+```
+
 ### 지켜야 할 것
 
 - **카메라와 fps를 생성 모델과 맞춥니다.** IDM은 학습한 카메라 시점에서만 동작합니다. 생성 영상도 같은 top 시점, 같은 fps여야 합니다(30fps면 16프레임 = 0.53초).
 - **캘리브레이션을 바꾸지 않습니다.** 녹화 중간에 리더/팔로워를 다시 캘리브레이션하면 같은 자세의 라벨 값이 달라집니다. 정책을 돌릴 로봇도 같은 캘리브레이션이어야 합니다.
 - **관절 범위를 골고루 녹화합니다.** IDM은 학습 때 본 관절 범위 밖의 값을 예측하지 못합니다.
-- **디스크.** 캐시는 프레임당 약 150KB입니다. 2분 30초 × 100개(약 45만 프레임)면 약 68GB가 필요하므로, 이 규모에서는 mp4를 학습 중에 바로 디코딩하도록 `prepare_data.py`/`dataset.py` 를 바꿔야 합니다.
+- **디스크.** 캐시는 카메라 하나에 프레임당 약 150KB입니다(27만 프레임 × 카메라 2개면 약 82GB). 캐시는 디스크에 바로 쓰므로 RAM보다 커도 되지만, 내장 디스크가 부족하면 `IDM/data` 를 외장 SSD로 심볼릭 링크합니다.
 - **학습량.** 45만 프레임이면 1 epoch가 batch 64 기준 약 7k step(약 15분)입니다. `--steps` 를 데이터 양에 맞게 늘리세요.
 
 ### 라벨 없는 영상 추론 (pseudo-label)
@@ -59,10 +70,11 @@ cd IDM
 # mp4 폴더
 .venv/bin/python src/infer.py --run runs/ours_top_resnet --input <mp4 폴더> --out runs/ours_top_resnet/labels
 
-# LeRobot 데이터셋
-.venv/bin/python src/infer.py --run runs/ours_top_resnet --input <데이터셋> --camera observation.images.top --out <출력 폴더>
+# LeRobot 데이터셋 (카메라는 학습 때와 같은 키를 자동으로 쓴다. 키 이름이 다르면 --camera 로 학습 때 순서대로 지정)
+.venv/bin/python src/infer.py --run runs/ours_top_resnet --input <데이터셋> --out <출력 폴더>
 ```
 
+- mp4 폴더 입력은 카메라 하나로 학습한 run만 쓸 수 있습니다.
 - 출력은 에피소드마다 `<이름>.npy`(float32 `[프레임 수, 6]`, 학습 데이터와 같은 단위)와 `meta.json` 입니다.
 - 16프레임 단위로 예측하고, 16으로 나누어떨어지지 않는 끝부분은 마지막 프레임에서 끝나는 윈도우를 하나 더 돌려 채웁니다. 마지막 프레임은 다음 프레임이 없으므로 직전 액션을 복사합니다.
 - 영상 fps가 학습 데이터와 다르면 경고를 출력합니다. 프레임이 17개 미만인 영상은 건너뜁니다.
@@ -78,7 +90,8 @@ IDM/
 ├── requirements-dreamgen.txt  # DreamGen 추가 패키지
 ├── src/                       # 코드 (파일별 설명: src/info.md)
 ├── experiments/
-│   └── run_experiments.sh     # REPORT.md 실험 재현 (공개 데이터 다운로드 -> 학습 -> 평가)
+│   ├── run_experiments.sh     # REPORT.md 실험 재현 (공개 데이터 다운로드 -> 학습 -> 평가)
+│   └── run_teleop_1015.sh     # 우리 데이터(teleop_1015) top only vs top + wrist 비교
 └── results/                   # REPORT.md 에 쓰인 결과. 그림(loss_*.png, traj_<run>_<tag>.png)은 여기 바로 아래
     └── runs/<run>/            # run별 config.json, loss.csv, eval_*.json, replay_test.json
 

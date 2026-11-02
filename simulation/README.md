@@ -54,6 +54,7 @@ MuJoCo 트롤리 씬, 리더암 텔레옵, 카메라 캘리브레이션, 데이�
 ### 모델링
 ![modeling manual](assets/modeling_manual.png)
 1. mesh 생성 - Fusion, [MeshAI](https://www.meshy.ai/ko?utm_source=google&utm_medium=cpc&utm_campaign=23975044931&utm_content=204617268384&utm_term=meshai&gad_source=1&gad_campaignid=23975044931&gbraid=0AAAAApPWZYgakItlVSVd3BfGgmvEmJjc3&gclid=CjwKCAjwrbfWBhAeEiwAc2e6Pp-0cezlca5-rMgsngFRUg6QcYgm8J7gPp_p_0KEDPlcKeWrKwqnaRoCmjoQAvD_BwE)
+   - 사진 한 장으로 만들기: [Image → 3D (TripoSG)](IMAGE_TO_3D.md)
 2. texture 입히기 - Blender or MuJoCo
 3. Joint 생성(서랍같은 녀석들) - MuJoCo
 

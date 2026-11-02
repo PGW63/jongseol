@@ -4,7 +4,7 @@ third_party/
 checkpoints/
 
 # 데이터 / 학습 산출물 (용량 큼). 공유할 결과는 results/ 에 복사해 둔다
-data/
+data
 runs/
 
 __pycache__/

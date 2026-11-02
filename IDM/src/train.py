@@ -47,6 +47,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--data", required=True, help="prepare_data.py 로 만든 캐시 폴더")
+    ap.add_argument("--cameras", nargs="+", default=None, help="쓸 카메라 (기본: 캐시에 있는 전부), e.g. top wrist")
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-test", type=int, default=5)
     ap.add_argument("--horizon", type=int, default=16)
@@ -73,15 +74,19 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    cache = Cache(args.data)
+    cache = Cache(args.data, args.cameras)
     train_eps, test_eps = split_episodes(cache, args.n_test)
     train_idx = np.isin(cache.ep, train_eps)
     normalizer = ActionNormalizer.fit(cache.action[train_idx])
     train_ds = IDMWindowDataset(cache, train_eps, args.horizon, normalizer)
     val_ds = IDMWindowDataset(cache, test_eps, args.horizon, normalizer, stride=args.horizon)
-    print(f"train windows={len(train_ds)} ({len(train_eps)} eps) | val windows={len(val_ds)} eps={test_eps}")
+    print(f"cameras={cache.cameras} train windows={len(train_ds)} ({len(train_eps)} eps) | val windows={len(val_ds)} eps={test_eps}")
 
     kw = {}
+    if args.model == "resnet":
+        kw = dict(n_views=len(cache.cameras))
+    elif len(cache.cameras) > 1:
+        raise SystemExit("DreamGen IDM 은 카메라 하나만 지원한다 (--cameras 로 하나만 고르기)")
     if args.model.startswith("dreamgen"):
         kw = dict(freeze_vision=args.freeze_vision, grad_ckpt=args.grad_ckpt,
                   single_embodiment=args.single_embodiment)
@@ -101,7 +106,7 @@ def main():
                         pin_memory=True, drop_last=True, persistent_workers=True)
     val_loader = DataLoader(val_ds, batch_size=args.bs, shuffle=False, num_workers=2)
 
-    cfg = vars(args) | {"train_eps": train_eps, "test_eps": test_eps, "normalizer": normalizer.to_dict(),
+    cfg = vars(args) | {"cameras": cache.cameras, "train_eps": train_eps, "test_eps": test_eps, "normalizer": normalizer.to_dict(),
                         "params_trainable_M": n_train / 1e6, "params_total_M": n_total / 1e6,
                         "gpu": torch.cuda.get_device_name(0)}
     (out / "config.json").write_text(json.dumps(cfg, indent=2))

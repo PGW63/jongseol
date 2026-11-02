@@ -4,26 +4,33 @@ IDM(Inverse Dynamics Model) 코드. 실행은 전부 `IDM/` 폴더에서 `IDM/.v
 ## 기본 흐름 (항상 쓰는 파일)
 
 ### `prepare_data.py`
-- LeRobot 데이터셋(mp4 + parquet)에서 카메라 하나를 골라 학습용 캐시를 만든다.
-- 영상을 중앙 정사각 크롭 후 224×224로 줄여 `frames.npy`에, 액션/상태/에피소드 번호를 `arrays.npz`에 저장한다.
+- LeRobot 데이터셋(mp4 + parquet)에서 카메라를 하나 이상 골라 학습용 캐시를 만든다.
+- 영상을 중앙 정사각 크롭 후 224×224로 줄여 카메라마다 `frames_<카메라>.npy`에, 액션/상태/에피소드 번호를 `arrays.npz`에 저장한다.
+- 프레임은 에피소드 단위로 디스크에 바로 쓴다 (RAM보다 큰 캐시도 가능).
 - 우리 `simulation/src/data_mj.py` 데이터셋은 `--camera observation.images.top`.
 - 주의: 프레임을 압축 없이 저장해서 프레임당 약 150KB. 45만 프레임이면 약 68GB.
 
 ### `dataset.py`
-- 캐시를 (o<sub>t</sub>, o<sub>t+16</sub>) → 액션 a<sub>t:t+16</sub> 윈도우로 잘라 준다. 학습은 1프레임 간격으로 가능한 모든 윈도우를 쓴다.
+- 캐시를 카메라마다 (o<sub>t</sub>, o<sub>t+16</sub>) → 액션 a<sub>t:t+16</sub> 윈도우로 잘라 준다. `Cache(path, cameras)` 로 쓸 카메라를 고른다 (예전 `frames.npy` 단일 카메라 캐시도 읽음). 학습은 1프레임 간격으로 가능한 모든 윈도우를 쓴다.
 - 관절별 min-max 정규화([-1, 1])는 학습 데이터 기준으로 계산한다.
 - train/test는 에피소드 단위로 나눈다 (seed 0 셔플, `--n-test` 개를 test로).
 
 ### `models.py`
 - `ResNetIDM`: 주력 모델. ImageNet ResNet18로 두 프레임 특징을 뽑고 Transformer 인코더/디코더로 16개 액션을 회귀한다 (18.7M, L1 loss).
+  `n_views` 로 카메라 여러 개를 받는다 (카메라 × 시점마다 임베딩, 토큰을 이어 붙여 한 인코더로).
 - `DreamGenIDM`: NVIDIA GR00T-Dreams의 IDM 코드를 그대로 불러와 쓰는 비교용 모델 (SigLIP2 + flow-matching DiT, 612M).
   `./install.sh --dreamgen` 으로 설치했을 때만 쓸 수 있다.
 - 두 모델 모두 학습 시 같은 증강(crop 0.95 → resize → color jitter)을 쓴다.
 
 ### `train.py`
 - 공통 학습 루프 (bf16 autocast, cosine LR, warmup 5%).
+- `--cameras top wrist` 로 캐시의 카메라 중 일부/전부를 고른다 (기본: 전부). ResNet-IDM만 여러 카메라 지원.
 - 결과는 `runs/<이름>/` 에 저장: `config.json`(설정, train/test 에피소드, 정규화 범위), `loss.csv`(step별 loss, val RMSE), `model_bf16.pt`(`--save` 시).
 - DreamGen을 8GB GPU에서 풀트레이닝하려면 `--optim adamw8bit --grad-ckpt --single-embodiment`.
+
+### `compare_runs.py`
+- 같은 test 에피소드로 `evaluate.py` 를 돌린 run 여러 개를 비교한다.
+- 에피소드별 관절 6개 궤적(GT vs 각 run), 관절별 RMSE 막대 그래프, RMSE 표(json, 콘솔에 markdown 표)를 만든다.
 
 ### `evaluate.py`
 - 학습된 IDM으로 test 에피소드 전체를 라벨링한다 (겹치지 않는 16프레임 윈도우, DreamGen `dump_idm_actions` 와 같은 방식).

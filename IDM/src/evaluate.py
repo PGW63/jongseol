@@ -30,6 +30,7 @@ def load_model(run):
         name = "dreamgen_scratch"
     else:
         name = cfg["model"]
+        kw = dict(n_views=len(cfg.get("cameras") or [None]))
     model = build_model(name, horizon=cfg["horizon"], **kw)
     sd = torch.load(run / "model_bf16.pt", map_location="cpu")
     model.load_state_dict({k: v.float() if v.is_floating_point() else v for k, v in sd.items()})
@@ -44,7 +45,7 @@ def relabel_episode(model, cache, s, t, H, normalizer, bs=16):
     preds = []
     for i in range(0, len(starts), bs):
         idx = starts[i : i + bs]
-        fr = torch.from_numpy(np.stack([np.stack([cache.frames[j], cache.frames[j + H]]) for j in idx])).cuda()
+        fr = torch.from_numpy(np.stack([cache.window(j, H) for j in idx])).cuda()
         torch.manual_seed(0)
         with torch.autocast("cuda", dtype=torch.bfloat16):
             preds.append(model.predict(fr).cpu().numpy())
@@ -82,10 +83,10 @@ def main():
     H = cfg["horizon"]
     normalizer = ActionNormalizer(**cfg["normalizer"])
     rng = normalizer.hi - normalizer.lo
-    cache = Cache(args.data or cfg["data"])
+    cache = Cache(args.data or cfg["data"], cfg.get("cameras"))
     episodes = cfg["test_eps"] if args.data is None else cache.episodes
 
-    train_cache = Cache(cfg["data"])
+    train_cache = Cache(cfg["data"], cfg.get("cameras"))
     train_mean = train_cache.action[np.isin(train_cache.ep, cfg["train_eps"])].mean(0)
 
     all_pred, all_gt, all_interp, saved = [], [], [], {}

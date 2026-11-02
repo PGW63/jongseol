@@ -1,4 +1,4 @@
-"""IDM 윈도우 데이터셋: (frame_t, frame_{t+H}) -> action[t : t+H]."""
+"""IDM 윈도우 데이터셋: 카메라마다 (frame_t, frame_{t+H}) -> action[t : t+H]."""
 import json
 from pathlib import Path
 
@@ -29,14 +29,29 @@ class ActionNormalizer:
 
 
 class Cache:
-    def __init__(self, path):
+    """prepare_data.py 캐시. cameras 로 쓸 카메라를 고른다 (기본: 캐시에 있는 전부, 캐시에 저장된 순서)."""
+
+    def __init__(self, path, cameras=None):
         path = Path(path)
-        self.frames = np.load(path / "frames.npy", mmap_mode="r")
+        self.meta = json.loads((path / "meta.json").read_text())
+        if (path / "frames.npy").exists():  # 예전 단일 카메라 캐시
+            self.cameras = [self.meta["camera"].split(".")[-1]]
+            views = [np.load(path / "frames.npy", mmap_mode="r")]
+        else:
+            self.cameras = list(cameras or self.meta["cameras"])
+            missing = set(self.cameras) - set(self.meta["cameras"])
+            assert not missing, f"캐시에 없는 카메라: {missing} (있는 것: {self.meta['cameras']})"
+            views = [np.load(path / f"frames_{c}.npy", mmap_mode="r") for c in self.cameras]
+        self.views = views
+        self.frame_size = views[0].shape[1]
         arr = np.load(path / "arrays.npz")
         self.action, self.state = arr["action"], arr["state"]
         self.ep = arr["episode_index"]
-        self.meta = json.loads((path / "meta.json").read_text())
         self.episodes = sorted(np.unique(self.ep).tolist())
+
+    def window(self, s, horizon):
+        """모델 입력 uint8 [2 * 카메라 수, S, S, 3]: 카메라 순서대로 (frame_s, frame_{s+H})."""
+        return np.stack([f for v in self.views for f in (v[s], v[s + horizon])])
 
     def episode_range(self, e):
         idx = np.nonzero(self.ep == e)[0]
@@ -66,6 +81,6 @@ class IDMWindowDataset(Dataset):
 
     def __getitem__(self, i):
         s = self.starts[i]
-        frames = np.stack([self.c.frames[s], self.c.frames[s + self.H]])  # [2, S, S, 3]
+        frames = self.c.window(s, self.H)  # [2V, S, S, 3]
         act = self.normalizer.norm(self.c.action[s : s + self.H])
         return torch.from_numpy(frames), torch.from_numpy(act.astype(np.float32))

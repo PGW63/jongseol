@@ -163,30 +163,32 @@ class DreamGenIDM(nn.Module):
 
 class ResNetIDM(nn.Module):
     """경량 baseline: 프레임별 ResNet18(ImageNet) 7x7 특징맵 -> Transformer 인코더 ->
-    액션 쿼리 디코더 -> [H, D] 회귀 (L1)."""
+    액션 쿼리 디코더 -> [H, D] 회귀 (L1).
+    n_views 개 카메라면 입력은 [B, 2 * n_views, S, S, 3] (카메라마다 t, t+H). 카메라·시점마다 임베딩이 따로 있다."""
 
-    def __init__(self, action_dim=6, horizon=16, d_model=256, image_size=224):
+    def __init__(self, action_dim=6, horizon=16, d_model=256, image_size=224, n_views=1):
         super().__init__()
         r = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1)
         self.backbone = nn.Sequential(*list(r.children())[:-2])
         self.proj = nn.Conv2d(512, d_model, 1)
         n_tok = (image_size // 32) ** 2
-        self.pos = nn.Parameter(torch.randn(1, 2 * n_tok, d_model) * 0.02)
-        self.frame_emb = nn.Parameter(torch.randn(2, 1, d_model) * 0.02)
+        n_frames = 2 * n_views
+        self.pos = nn.Parameter(torch.randn(1, n_frames * n_tok, d_model) * 0.02)
+        self.frame_emb = nn.Parameter(torch.randn(n_frames, 1, d_model) * 0.02)
         self.enc = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model, 8, 4 * d_model, 0.1, batch_first=True, norm_first=True), 4)
         self.queries = nn.Parameter(torch.randn(1, horizon, d_model) * 0.02)
         self.dec = nn.TransformerDecoder(
             nn.TransformerDecoderLayer(d_model, 8, 4 * d_model, 0.1, batch_first=True, norm_first=True), 4)
         self.head = nn.Linear(d_model, action_dim)
-        self.image_size, self.n_tok = image_size, n_tok
+        self.image_size, self.n_tok, self.n_frames = image_size, n_tok, n_frames
 
     def forward(self, frames, train):
         B = frames.shape[0]
         x = augment(frames, train, self.image_size)
         x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
-        f = self.proj(self.backbone(x))  # [B*2, d, 7, 7]
-        f = f.flatten(2).transpose(1, 2).view(B, 2, self.n_tok, -1)
+        f = self.proj(self.backbone(x))  # [B*2V, d, 7, 7]
+        f = f.flatten(2).transpose(1, 2).view(B, self.n_frames, self.n_tok, -1)
         f = (f + self.frame_emb.unsqueeze(0)).flatten(1, 2) + self.pos
         mem = self.enc(f)
         return self.head(self.dec(self.queries.expand(B, -1, -1), mem))

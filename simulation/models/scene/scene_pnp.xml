@@ -1,0 +1,43 @@
+<mujoco model="pnp_scene">
+  <!-- 빈 월드 + 큐브 하나 + 목표 구역. 텔레옵 vs 키보드 IK 의 pick & place 비교용 (src/teleop/pnp_compare.py).
+       큐브 위치(freejoint)와 목표 구역(mocap)은 실행할 때 매번 옮긴다. -->
+
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.002" integrator="implicitfast" cone="elliptic" impratio="10"/>
+
+  <visual>
+    <global offwidth="1920" offheight="1080"/>
+    <headlight diffuse="0.45 0.45 0.45" ambient="0.4 0.4 0.4" specular="0.1 0.1 0.1"/>
+    <map znear="0.01"/>
+  </visual>
+
+  <asset>
+    <texture name="tex_grid" type="2d" builtin="checker" width="512" height="512"
+             rgb1="0.46 0.48 0.52" rgb2="0.54 0.56 0.60"/>
+    <material name="mat_floor" texture="tex_grid" texrepeat="12 12" reflectance="0.08"/>
+    <model name="so101" file="../so101/so101.xml"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.3 -0.6 1.5" dir="-0.1 0.4 -1" directional="true" diffuse="0.55 0.55 0.55"/>
+    <geom name="floor" type="plane" size="2 2 0.05" material="mat_floor"/>
+
+    <!-- 베이스 밑면(z=-0.0024)이 바닥에 닿게 -->
+    <body name="so101_mount" pos="0 0 0.0024">
+      <attach model="so101" body="base" prefix="so101_"/>
+    </body>
+
+    <!-- 집을 물체: 한 변 25 mm 큐브 -->
+    <body name="cube" pos="0.22 0.08 0.0125">
+      <freejoint name="cube"/>
+      <geom name="cube" type="box" size="0.0125 0.0125 0.0125" mass="0.02" rgba="0.89 0.29 0.28 1"
+            friction="1.5 0.01 0.001" condim="4" solref="0.01 1"/>
+    </body>
+
+    <!-- 놓을 곳: 충돌 없는 표시용 판 (반지름 = 성공 판정 범위) -->
+    <body name="target" mocap="true" pos="0.22 -0.08 0.0005">
+      <geom name="target" type="cylinder" size="0.03 0.0005" rgba="0.11 0.69 0.48 0.45" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+</mujoco>

@@ -17,6 +17,16 @@ datasets/
 # 카메라 캘리브레이션 중 캡쳐한 이미지 (결과값은 각 config.py 에 저장됨)
 simulation/src/camera-cali/*/captures/
 
+# image→3D third-party 코드와 생성 결과 (simulation/IMAGE_TO_3D.md 로 다시 받을 수 있음)
+simulation/third_party/
+
+# 발표 자료 (그림, 원본 렌더)
+presentation/
+
+# 텔레옵/키보드 비교 시행 기록 (pnp_compare.py, traj_compare.py run 으로 다시 모음)
+simulation/results/pnp_compare/
+simulation/results/traj_compare/
+
 # OS / 에디터
 .DS_Store
 .vscode/
