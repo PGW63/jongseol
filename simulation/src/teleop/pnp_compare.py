@@ -70,13 +70,15 @@ def layout(seed: int) -> tuple[np.ndarray, float, np.ndarray]:
 
 
 class DownIK:
-    """끝점 위치 + "그리퍼가 아래를 본다" 를 같이 맞추는 감쇠 최소제곱 IK.
+    """끝점 위치를 먼저 맞추고, 남는 자유도로 "그리퍼가 아래를 본다" 를 맞추는 IK.
 
     pan/lift/elbow/wrist_flex 4 개로 위치 3 + 기울기 1 을 맞추고, wrist_roll 은 키로 따로 정한다.
     그리퍼 바디의 +z 가 손목 쪽을 향하므로 (끝이 -z) 그 축을 월드 +z 에 맞춘다.
+    위치와 기울기를 가중합으로 같이 풀면 관절 한계(특히 wrist_flex)에 걸렸을 때 위치를 1 cm 씩
+    포기해 버린다. 그래서 위치 우선 + 한계에 걸린 관절은 빼고 다시 푼다 (그 때는 그리퍼가 조금 기운다).
     """
 
-    def __init__(self, model: mujoco.MjModel, rot_weight: float = 0.05, damping: float = 0.01):
+    def __init__(self, model: mujoco.MjModel, damping: float = 0.01):
         self.model = model
         self.data = mujoco.MjData(model)
         self.site = model.site(PREFIX + "gripperframe").id
@@ -85,10 +87,26 @@ class DownIK:
         self.dofs = [int(model.joint(PREFIX + j).dofadr[0]) for j in JOINT_NAMES[:4]]
         self.lo = np.array([MUJOCO_JOINT_RANGE[j][0] for j in JOINT_NAMES[:4]])
         self.hi = np.array([MUJOCO_JOINT_RANGE[j][1] for j in JOINT_NAMES[:4]])
-        self.w = rot_weight
         self.damping = damping
         self.jacp = np.zeros((3, model.nv))
         self.jacr = np.zeros((3, model.nv))
+
+    def _dls(self, J: np.ndarray, e: np.ndarray) -> np.ndarray:
+        return J.T @ np.linalg.solve(J @ J.T + self.damping**2 * np.eye(len(e)), e)
+
+    def _step(self, Jp: np.ndarray, Jr: np.ndarray, ep: np.ndarray, er: np.ndarray, q: np.ndarray) -> np.ndarray:
+        """위치 우선, 기울기는 위치 영공간에서. 한계 밖으로 밀리는 관절은 고정하고 다시 푼다."""
+        free = np.ones(4, dtype=bool)
+        for _ in range(4):
+            Jpf, Jrf = Jp * free, Jr * free
+            dq = self._dls(Jpf, ep)
+            N = np.eye(4) - np.linalg.pinv(Jpf) @ Jpf
+            dq = dq + N @ self._dls(Jrf @ N, er - Jrf @ dq)
+            out = free & (((q <= self.lo + 1e-6) & (dq < 0)) | ((q >= self.hi - 1e-6) & (dq > 0)))
+            if not out.any():
+                return dq
+            free &= ~out
+        return dq * free
 
     def solve(self, q0: np.ndarray, target: np.ndarray, iters: int = 30) -> tuple[np.ndarray, np.ndarray]:
         """q0(관절 6개) 에서 출발 -> (관절, 실제로 닿은 끝점). q0 의 wrist_roll/gripper 는 그대로 둔다."""
@@ -103,10 +121,8 @@ class DownIK:
                 break
             mujoco.mj_jacSite(self.model, self.data, self.jacp, None, self.site)
             mujoco.mj_jacBody(self.model, self.data, None, self.jacr, self.body)
-            J = np.vstack([self.jacp[:, self.dofs], self.w * self.jacr[:, self.dofs]])
-            e = np.concatenate([ep, self.w * er])
-            dq = J.T @ np.linalg.solve(J @ J.T + self.damping**2 * np.eye(6), e)
-            q[:4] = np.clip(q[:4] + dq, self.lo, self.hi)
+            dq = self._step(self.jacp[:, self.dofs], self.jacr[:, self.dofs], ep, er, q[:4])
+            q[:4] = np.clip(q[:4] + np.clip(dq, -0.2, 0.2), self.lo, self.hi)
         self.data.qpos[self.qadr] = q
         mujoco.mj_kinematics(self.model, self.data)
         return q, self.data.site_xpos[self.site].copy()
@@ -118,6 +134,8 @@ class KeyboardPnP:
     MOVE = KeyboardIK.KEYS
     ROLL = {"z": +1, "x": -1}
     ROLL_LO, ROLL_HI = MUJOCO_JOINT_RANGE["wrist_roll"]
+    REACH_TOL = 0.002  # IK 가 이보다 멀리 떨어지면 못 닿는 곳으로 본다 (m)
+    MAX_DQ = 0.15  # 한 틱에 관절 목표가 이보다 크게 바뀌면 거부 (rad)
 
     def __init__(self, model: mujoco.MjModel, speed: float, roll_speed: float = 1.5):
         self.ik = DownIK(model)
@@ -145,17 +163,31 @@ class KeyboardPnP:
         self.held.discard(key)
         self.released_at[key] = time.perf_counter()
 
+    def try_move(self, delta: np.ndarray) -> bool:
+        """커서를 delta 만큼 옮겨 본다. IK 가 거기 못 닿거나 관절이 한 번에 크게 튀면 그대로 둔다.
+
+        못 닿을 때 커서를 IK 가 닿은 곳으로 붙이면, 팔이 다 펴진 근처에서 IK 가 넘어간 점을 다시
+        목표로 삼아 커서가 튀고 관절 목표가 매 틱 왔다 갔다 한다 (팔이 떨면서 버티는 것처럼 보임).
+        """
+        cursor = self.cursor + delta
+        cursor[2] = max(cursor[2], 0.008)  # 바닥을 파고들지 않게
+        q, reached = self.ik.solve(self.q, cursor)
+        if np.linalg.norm(reached - cursor) > self.REACH_TOL or np.abs(q[:4] - self.q[:4]).max() > self.MAX_DQ:
+            return False
+        self.cursor, self.q = cursor, q
+        return True
+
     def step(self, dt: float) -> np.ndarray:
         vel = np.zeros(3)
         for k in self.held & self.MOVE.keys():
             axis, sign = self.MOVE[k]
             vel[axis] += sign
         if vel.any():
-            self.cursor = self.cursor + self.speed * dt * vel / np.linalg.norm(vel)
-            self.cursor[2] = max(self.cursor[2], 0.008)  # 바닥을 파고들지 않게
-            self.q, reached = self.ik.solve(self.q, self.cursor)
-            if np.linalg.norm(reached - self.cursor) > 0.005:
-                self.cursor = reached
+            delta = self.speed * dt * vel / np.linalg.norm(vel)
+            # 대각선으로 못 가면 축마다 따로 시도 -> 작업 공간 경계를 따라 미끄러진다
+            if not self.try_move(delta):
+                for axis in np.flatnonzero(delta):
+                    self.try_move(np.eye(3)[axis] * delta[axis])
         roll = sum(self.ROLL[k] for k in self.held & self.ROLL.keys())
         self.q[4] = np.clip(self.q[4] + roll * self.roll_speed * dt, self.ROLL_LO, self.ROLL_HI)
         self.q[5] = GRIP_OPEN if self.grip_open else GRIP_CLOSED

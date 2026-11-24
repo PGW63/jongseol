@@ -116,9 +116,10 @@
     <camera name="overview" pos="0.47 -1.25 1.55" xyaxes="1 0 0 0 0.62 0.78"/>
     <camera name="top"      pos="0.47 0.24 1.95" xyaxes="1 0 0 0 1 0"/>
     <camera name="drawers"  pos="0.12 -0.45 1.15" xyaxes="1 0 0 0 0.6 0.8"/>
-    <!-- 원점 꼭짓점 바로 위, 상판에서 0.555 m. +X 를 보던 카메라를 z 축으로 35도(yaw, +Y 쪽),
-         y 축으로 55도(pitch, 아래로) 돌린 자세. 롤 없음 -->
-    <camera name="corner"   pos="0 0 1.285" xyaxes="0.5736 -0.8192 0 0.6710 0.4698 0.5736" fovy="45"
+    <!-- 실제 top 카메라. pos 는 트롤리 원점 꼭짓점에서 자로 잰 값 (6, 7.5, 상판 위 55 cm),
+         xyaxes 는 headCam_to_Base.py 결과 (아래로 약 65 도). 수동으로 맞추는 중.
+         fovy 는 data_mj 가 실제 렌즈처럼 그릴 때 teleop/real_camera.py 가 덮어쓴다 (top_cam/config.py 의 캘리 값) -->
+    <camera name="corner"   pos="0.06 0.075 1.28" xyaxes="0.5352 -0.8253 0.1799 0.7333 0.5597 0.3860" fovy="47.70"
             resolution="640 480"/>
     <!-- 조작자용 화면 두 개 (data_mj 위쪽). 데이터셋에는 넣지 않는다.
          left: 로봇 왼쪽(+Y, 트롤리 옆)에서 작업 영역을 옆으로 바라본다. drawer_top: 서랍 위에서 수직으로 내려다본다 (화면 위쪽이 +X) -->

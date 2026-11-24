@@ -2,10 +2,11 @@
 
     .venv/bin/python src/camera-cali/intrinsic_cali.py top --board 9x6 --square 0.025
     .venv/bin/python src/camera-cali/intrinsic_cali.py wrist --board 9x6 --square 0.025
+    .venv/bin/python src/camera-cali/intrinsic_cali.py belly --board 9x6 --square 0.025
     .venv/bin/python src/camera-cali/intrinsic_cali.py top --images src/camera-cali/top_cam/captures
 
-첫 인자로 어느 카메라인지 (top 또는 wrist) 를 준다. 끝나면 결과를 그 카메라의 설정 파일
-(top_cam/config.py 또는 wrist_cam/config.py) 에 써 넣는다.
+첫 인자로 어느 카메라인지 (top, wrist, belly) 를 준다. 끝나면 결과를 그 카메라의 설정 파일
+(top_cam/config.py, wrist_cam/config.py, belly_cam/config.py) 에 써 넣는다.
 
 --board 는 칸 수가 아니라 안쪽 꼭짓점 수 (가로x세로). 9x6 은 칸이 10x7 인 보드다.
 --square 는 한 칸의 한 변 길이 (m).

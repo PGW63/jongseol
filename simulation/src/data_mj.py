@@ -19,7 +19,8 @@ mjpython 이 아니라 일반 python 으로 실행한다 (MuJoCo 창 없이 카�
 이미 저장된 에피소드는 4 로 지울 수 없다.
 
 저장되는 값 (프레임마다)
-    observation.images.top / wrist : 640x480 RGB
+    observation.images.top / wrist : 640x480 RGB. 기본은 실제 카메라 캘리 값(초점거리, 주점, 렌즈 왜곡)으로
+                                     그린다 (teleop/real_camera.py). --ideal-camera 면 왜곡 없는 MuJoCo 카메라 그대로
     observation.state : 시뮬레이션 관절 각도를 리더와 같은 정규화 단위로 바꾼 값 (6)
     action            : 리더암 정규화값 (팔 -100~100, 그리퍼 0~100) (6)
 """
@@ -37,6 +38,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 from teleop.constants import JOINT_NAMES
 from teleop.leader_mj import LeaderSim, Pacer, SO101LeaderMjConfig
+from teleop.real_camera import RealCamera
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENE = ROOT / "models" / "scene" / "scene_trolley.xml"
@@ -46,6 +48,8 @@ DATASETS = ROOT.parent / "datasets"
 
 # 데이터셋 이미지 키 -> 씬의 카메라 이름
 CAMERAS = {"top": "corner", "wrist": "so101_wrist_cam"}
+# 데이터셋 이미지 키 -> 실제 카메라 캘리 이름 (src/camera-cali/<이름>_cam/config.py)
+CALIBRATIONS = {"top": "top", "wrist": "wrist"}
 WIDTH, HEIGHT = 640, 480
 # 화면에만 보여주는 카메라 (데이터셋에는 넣지 않는다)
 VIEW_CAMERAS = ["left", "drawer_top"]
@@ -73,9 +77,10 @@ class Recorder:
     GUI 는 command() 로 명령만 넣고 snapshot() 으로 화면에 그릴 것만 가져간다.
     """
 
-    def __init__(self, cfg: SO101LeaderMjConfig, repo_id: str, root: Path, task: str):
+    def __init__(self, cfg: SO101LeaderMjConfig, repo_id: str, root: Path, task: str, real_camera: bool = True):
         self.cfg = cfg
         self.task = task
+        self.real_camera = real_camera
         self.sim = LeaderSim(cfg)
         if (root / "meta" / "info.json").exists():
             self.dataset = LeRobotDataset.resume(repo_id, root=root, image_writer_threads=4, video_backend="pyav")
@@ -200,9 +205,16 @@ class Recorder:
 
     def _run(self) -> None:
         renderer = view_renderer = None
+        real_cams = {}
         try:
             # 렌더러는 쓰는 스레드에서 만들어야 한다 (GL 컨텍스트가 스레드에 묶인다)
-            renderer = mujoco.Renderer(self.sim.model, HEIGHT, WIDTH)
+            if self.real_camera:
+                for key, camera in CAMERAS.items():
+                    real_cams[key] = RealCamera(self.sim.model, camera, CALIBRATIONS[key])
+                    if (real_cams[key].width, real_cams[key].height) != (WIDTH, HEIGHT):
+                        raise ValueError(f"{key} 캘리 해상도가 {WIDTH}x{HEIGHT} 가 아닙니다")
+            else:
+                renderer = mujoco.Renderer(self.sim.model, HEIGHT, WIDTH)
             view_renderer = mujoco.Renderer(self.sim.model, VIEW_HEIGHT, VIEW_WIDTH)
             ticks = 0
             pacer = Pacer(self.cfg.fps)
@@ -218,8 +230,11 @@ class Recorder:
                 leader, state = self.sim.tick()
                 images = {}
                 for key, camera in CAMERAS.items():
-                    renderer.update_scene(self.sim.data, camera=camera)
-                    images[key] = renderer.render().copy()
+                    if real_cams:
+                        images[key] = real_cams[key].render(self.sim.data)
+                    else:
+                        renderer.update_scene(self.sim.data, camera=camera)
+                        images[key] = renderer.render().copy()
                 # 조작자용 화면은 기록하지 않으니 두 틱에 한 번만 그린다
                 ticks += 1
                 if ticks % 2 == 0:
@@ -254,7 +269,7 @@ class Recorder:
             try:
                 self.dataset.finalize()
             finally:
-                for r in (renderer, view_renderer):
+                for r in (renderer, view_renderer, *real_cams.values()):
                     if r is not None:
                         r.close()
                 self.done.set()
@@ -280,6 +295,8 @@ def main() -> None:
     ap.add_argument("--port", help="리더암 포트 (기본: config 의 고정 이름)")
     ap.add_argument("--no-randomize", action="store_true", help="환경을 초기화할 때 물체를 흩뜨리지 않고 원래 자리에 둔다")
     ap.add_argument("--seed", type=int, help="물체 배치 난수 시드")
+    ap.add_argument("--ideal-camera", action="store_true",
+                    help="top/wrist 를 실제 카메라 캘리 값 대신 왜곡 없는 MuJoCo 카메라 그대로 그린다")
     args = ap.parse_args()
     root = args.root or DATASETS / args.repo_id.split("/")[-1]
 
@@ -290,7 +307,7 @@ def main() -> None:
     )
     if args.port:
         cfg.port = args.port
-    rec = Recorder(cfg, args.repo_id, root, args.task)
+    rec = Recorder(cfg, args.repo_id, root, args.task, real_camera=not args.ideal_camera)
 
     # 숫자키/q 를 matplotlib 기본 단축키가 가로채지 않게 한다
     for key in [k for k in plt.rcParams if k.startswith("keymap.")]:

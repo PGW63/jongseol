@@ -1,0 +1,104 @@
+{
+  "board": "9x7",
+  "square": 0.0205,
+  "calibration": {
+    "shoulder_pan": {
+      "range_min": 1060,
+      "range_max": 3254
+    },
+    "shoulder_lift": {
+      "range_min": 877,
+      "range_max": 2950
+    },
+    "elbow_flex": {
+      "range_min": 820,
+      "range_max": 3152
+    },
+    "wrist_flex": {
+      "range_min": 812,
+      "range_max": 3134
+    },
+    "wrist_roll": {
+      "range_min": 0,
+      "range_max": 4095
+    },
+    "gripper": {
+      "range_min": 1970,
+      "range_max": 3510
+    }
+  },
+  "touches": {
+    "origin": [
+      {
+        "shoulder_pan": 1717.0,
+        "shoulder_lift": 2390.0,
+        "elbow_flex": 2030.0,
+        "wrist_flex": 2366.0,
+        "wrist_roll": 1999.0,
+        "gripper": 2081.0
+      },
+      {
+        "shoulder_pan": 1668.0,
+        "shoulder_lift": 2422.0,
+        "elbow_flex": 2025.0,
+        "wrist_flex": 2366.0,
+        "wrist_roll": 3021.0,
+        "gripper": 2081.0
+      }
+    ],
+    "x_end": [
+      {
+        "shoulder_pan": 1967.0,
+        "shoulder_lift": 2104.0,
+        "elbow_flex": 2409.0,
+        "wrist_flex": 2367.0,
+        "wrist_roll": 2046.0,
+        "gripper": 2081.0
+      },
+      {
+        "shoulder_pan": 1954.0,
+        "shoulder_lift": 2066.0,
+        "elbow_flex": 2407.0,
+        "wrist_flex": 2367.0,
+        "wrist_roll": 3098.0,
+        "gripper": 2083.0
+      }
+    ],
+    "y_end": [
+      {
+        "shoulder_pan": 1821.0,
+        "shoulder_lift": 1604.0,
+        "elbow_flex": 2890.0,
+        "wrist_flex": 2627.0,
+        "wrist_roll": 1996.0,
+        "gripper": 2083.0
+      },
+      {
+        "shoulder_pan": 1820.0,
+        "shoulder_lift": 1761.0,
+        "elbow_flex": 2718.0,
+        "wrist_flex": 2629.0,
+        "wrist_roll": 3032.0,
+        "gripper": 2082.0
+      }
+    ],
+    "diagonal": [
+      {
+        "shoulder_pan": 1451.0,
+        "shoulder_lift": 2268.0,
+        "elbow_flex": 2197.0,
+        "wrist_flex": 2591.0,
+        "wrist_roll": 2004.0,
+        "gripper": 2082.0
+      },
+      {
+        "shoulder_pan": 1460.0,
+        "shoulder_lift": 2292.0,
+        "elbow_flex": 2096.0,
+        "wrist_flex": 2593.0,
+        "wrist_roll": 3038.0,
+        "gripper": 2083.0
+      }
+    ]
+  }
+}

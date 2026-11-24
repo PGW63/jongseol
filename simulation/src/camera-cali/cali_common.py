@@ -1,8 +1,11 @@
 """intrinsic_cali.py 와 headCam_to_Base.py 가 같이 쓰는 것: 카메라 열기, 체커보드 찾기, 화면."""
 
 import importlib
+import json
 import os
 import pprint
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,13 +16,22 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 
 
-CAMERAS = ("top", "wrist")
+CAMERAS = ("top", "wrist", "belly")
+
+
+def check_name(name: str) -> str:
+    """카메라 이름은 <name>_cam 폴더와 <Name>CamConfig 클래스 이름이 되므로 소문자/숫자/_ 만 쓴다."""
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise SystemExit(f"카메라 이름은 영문 소문자로 시작하고 소문자, 숫자, _ 만 쓸 수 있습니다: {name}")
+    return name
 
 
 def default_camera(name: str) -> str:
     """카메라의 고정 이름. ubuntu 는 udev 규칙으로 만든 /dev/so101_cam_<name>,
-    macOS 는 카메라가 /dev 에 파일로 나오지 않아서 번호(top = 0, wrist = 1)로 연다."""
-    return str(CAMERAS.index(name)) if sys.platform == "darwin" else f"/dev/so101_cam_{name}"
+    macOS 는 카메라가 /dev 에 파일로 나오지 않아서 번호(top = 0, wrist = 1, belly = 2, 그 밖은 0)로 연다."""
+    if sys.platform == "darwin":
+        return str(CAMERAS.index(name)) if name in CAMERAS else "0"
+    return f"/dev/so101_cam_{name}"
 
 
 def _literal(value) -> str:
@@ -30,16 +42,18 @@ def _literal(value) -> str:
     return repr(value)
 
 
-def _write_config(folder: str, cls: str, doc: str, fields: list[tuple[str, str, object, str]]) -> Path:
-    """<folder>/config.py 를 통째로 다시 쓴다. fields: (이름, 타입, 값, 설명)."""
+def _write_config(folder: str, cls: str, doc: str, fields: list[tuple[str, str, object, str]], filename: str = "config.py") -> Path:
+    """<folder>/<filename> 을 통째로 다시 쓴다. fields: (이름, 타입, 값, 설명)."""
     lines = [f'"""{doc}', "", "캘리브레이션 스크립트가 통째로 다시 쓰는 파일이다. 손으로 고친 내용은 다음 캘리 때 사라진다.", '"""', "",
              "from dataclasses import dataclass, field", "", "", "@dataclass(frozen=True)", f"class {cls}:"]
     for name, typ, value, comment in fields:
         lines += [f"    # {comment}", f"    {name}: {typ} = {_literal(value)}"]
-    path = HERE / folder / "config.py"
+    (HERE / folder).mkdir(parents=True, exist_ok=True)
+    path = HERE / folder / filename
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    (HERE / folder / "__init__.py").write_text(
-        f"from {folder}.config import {cls}\n\n__all__ = [\"{cls}\"]\n", encoding="utf-8")
+    if filename == "config.py":
+        (HERE / folder / "__init__.py").write_text(
+            f"from {folder}.config import {cls}\n\n__all__ = [\"{cls}\"]\n", encoding="utf-8")
     return path
 
 
@@ -47,7 +61,9 @@ def write_intrinsic_config(name: str, port: str, width: int, height: int, result
     """<name>_cam/config.py. result 가 None 이면 아직 캘리브레이션하지 않은 기본 상태로 쓴다."""
     r = result or {}
     board = r.get("board", {})
-    return _write_config(f"{name}_cam", f"{name.capitalize()}CamConfig", f"{name} 카메라 설정과 내부 파라미터 (intrinsic_cali.py {name} 의 결과).", [
+    charuco = r.get("charuco", {})
+    script = "charuco_intrinsic_cali.py" if charuco else "intrinsic_cali.py"
+    return _write_config(f"{name}_cam", f"{name.capitalize()}CamConfig", f"{name} 카메라 설정과 내부 파라미터 ({script} {name} 의 결과).", [
         ("port", "str", port, "장치 경로(udev 이름) 또는 카메라 번호"),
         ("width", "int", width, "캘리브레이션한 해상도. 다른 해상도로 쓰면 camera_matrix 가 맞지 않는다"),
         ("height", "int", height, "캘리브레이션한 해상도"),
@@ -60,6 +76,12 @@ def write_intrinsic_config(name: str, port: str, width: int, height: int, result
         ("board_cols", "int | None", board.get("cols"), "쓴 체커보드: 안쪽 꼭짓점 가로 수"),
         ("board_rows", "int | None", board.get("rows"), "쓴 체커보드: 안쪽 꼭짓점 세로 수"),
         ("board_square", "float | None", board.get("square"), "쓴 체커보드: 한 칸의 변 길이 (m)"),
+        ("charuco_squares_x", "int | None", charuco.get("squares_x"), "쓴 ChArUco 보드: 가로 칸 수 (체커보드로 했으면 None)"),
+        ("charuco_squares_y", "int | None", charuco.get("squares_y"), "쓴 ChArUco 보드: 세로 칸 수"),
+        ("charuco_square", "float | None", charuco.get("square"), "쓴 ChArUco 보드: 한 칸의 변 길이 (m)"),
+        ("charuco_marker", "float | None", charuco.get("marker"), "쓴 ChArUco 보드: ArUco 마커 한 변 길이 (m)"),
+        ("charuco_dict", "str | None", charuco.get("dictionary"), "쓴 ChArUco 보드: ArUco 사전 이름"),
+        ("charuco_legacy", "bool | None", charuco.get("legacy"), "쓴 ChArUco 보드: OpenCV 4.6 이전 배치(legacy pattern) 여부"),
     ])
 
 
@@ -82,32 +104,94 @@ def write_extrinsic_config(result: dict | None) -> Path:
     ])
 
 
+def write_camera_extrinsic(name: str, result: dict) -> Path:
+    """extrinsic/<name>.py (extrinsic_cali.py 의 결과)."""
+    r = result
+    return _write_config("extrinsic", f"{name.capitalize()}CamExtrinsicConfig",
+                         f"{name} 카메라가 로봇의 {r['link']} 링크에서 어디에 달려 있는지 (extrinsic_cali.py {name} 의 결과).\n\n"
+                         "카메라 축은 OpenCV 관례다: x 오른쪽, y 아래, z 보는 방향. 길이는 m, 쿼터니언은 w x y z.\n"
+                         "link 가 base 가 아니면 그 링크(MuJoCo body so101_<link>)와 같이 움직인다: T_base_cam = FK(q) @ T_link_cam.", [
+        ("link", "str", r["link"], "기준 링크. base 면 고정 카메라"),
+        ("calibrated", "bool", True, "False 면 아래 값은 비어 있다"),
+        ("T_link_cam", "list[list[float]]", r["T_link_cam"], "4x4. 카메라 좌표의 점을 링크 좌표로 옮긴다"),
+        ("position", "list[float]", r["position"], "링크 기준 카메라 위치"),
+        ("quat_wxyz", "list[float]", r["quat_wxyz"], "링크 기준 카메라 방향"),
+        ("mujoco_body", "str", r["mujoco_body"], "아래 <camera> 를 넣을 곳 (worldbody 또는 so101.xml 의 body)"),
+        ("mujoco_pos", "list[float]", r["mujoco_pos"], "<camera pos=...>"),
+        ("mujoco_xyaxes", "list[float]", r["mujoco_xyaxes"], "<camera xyaxes=...>"),
+        ("mujoco_fovy", "float | None", r["mujoco_fovy"], "<camera fovy=...> (intrinsic 의 값)"),
+        ("num_samples", "int", r["num_samples"], "평균 낸 표본 수"),
+        ("placements", "list[str]", r["placements"], "쓴 보드 자리"),
+        ("spread_mm", "float", r["spread_mm"], "표본들의 위치가 평균에서 벗어난 정도 RMS (mm)"),
+        ("spread_deg", "float", r["spread_deg"], "표본들의 방향이 평균에서 벗어난 정도 RMS (도)"),
+        ("reprojection_px", "float", r["reprojection_px"], "보드 재투영 오차 평균 (px)"),
+    ], filename=f"{name}.py")
+
+
 def load_camera_config(name: str):
-    """<name>_cam/config.py 의 설정 객체. 파일이 비어 있으면 기본 상태로 먼저 만든다."""
-    cls = f"{name.capitalize()}CamConfig"
-    if cls not in (HERE / f"{name}_cam" / "config.py").read_text(encoding="utf-8"):
+    """<name>_cam/config.py 의 설정 객체. 폴더나 파일이 없거나 비어 있으면 기본 상태로 먼저 만든다."""
+    cls = f"{check_name(name).capitalize()}CamConfig"
+    path = HERE / f"{name}_cam" / "config.py"
+    if not path.exists() or cls not in path.read_text(encoding="utf-8"):
         write_intrinsic_config(name, default_camera(name), 640, 480, None)
     if str(HERE) not in sys.path:
         sys.path.insert(0, str(HERE))
+    importlib.invalidate_caches()  # 방금 만든 폴더도 import 되게
     module = importlib.reload(importlib.import_module(f"{name}_cam.config"))
     return getattr(module, cls)()
 
 
+def mac_cameras() -> list[dict]:
+    """macOS 카메라 목록을 OpenCV 번호 순서로. OpenCV(AVFoundation) 는 uniqueID 를 문자열로 정렬한 순서로 번호를 매긴다.
+    USB 카메라의 uniqueID 는 0x<USB 위치><VendorID><ProductID> 라서, 같은 USB 포트에 꽂혀 있는 한 바뀌지 않는다."""
+    out = subprocess.run(["system_profiler", "SPCameraDataType", "-json"], capture_output=True, text=True).stdout
+    cams = [{"name": c.get("_name", "?"), "uid": c["spcamera_unique-id"]} for c in json.loads(out).get("SPCameraDataType", [])]
+    cams.sort(key=lambda c: c["uid"])
+    for i, c in enumerate(cams):
+        c["index"] = i
+    return cams
+
+
+def resolve_camera(spec: str) -> str:
+    """'uid:<uniqueID>' 를 지금의 OpenCV 번호로 바꾼다. 다른 꼴은 그대로."""
+    if not spec.startswith("uid:"):
+        return spec
+    uid = spec[4:]
+    for c in mac_cameras():
+        if c["uid"] == uid:
+            return str(c["index"])
+    raise SystemExit(f"카메라 {uid} 가 연결되어 있지 않습니다. USB 를 원래 포트에 꽂았는지 확인하세요 (find_cameras.py 로 목록 확인).")
+
+
 def open_camera(spec: str, width: int, height: int) -> cv2.VideoCapture:
-    """spec 이 숫자면 카메라 번호, 아니면 장치 경로 (udev 심볼릭 링크 포함)."""
+    """spec 이 숫자면 카메라 번호, uid:<uniqueID> 면 macOS 카메라 고유 ID, 아니면 장치 경로 (udev 심볼릭 링크 포함)."""
+    shown, spec = spec, resolve_camera(spec)
+    if spec != shown:
+        print(f"카메라 {shown} -> 번호 {spec}")
     if spec.isdigit():
         cap = cv2.VideoCapture(int(spec))
     else:
         # udev 가 만든 이름은 /dev/videoN 을 가리키는 링크다. OpenCV 는 /dev/video* 꼴만 장치로 알아본다.
         cap = cv2.VideoCapture(os.path.realpath(spec), cv2.CAP_V4L2)
     if not cap.isOpened():
-        raise SystemExit(f"카메라를 열 수 없습니다: {spec}  (--camera 로 번호나 장치 경로를 지정하세요)")
+        raise SystemExit(f"카메라를 열 수 없습니다: {shown}  (--camera 로 번호나 장치 경로를 지정하세요)")
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     got = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     if got != (width, height):
         print(f"경고: {width}x{height} 을 요청했지만 카메라는 {got[0]}x{got[1]} 로 열렸습니다.")
     return cap
+
+
+def set_camera_port(name: str, port: str) -> Path:
+    """<name>_cam/config.py 의 port 줄만 바꾼다 (캘리 값은 그대로). config 가 없으면 기본 상태로 만든다."""
+    load_camera_config(name)
+    path = HERE / f"{name}_cam" / "config.py"
+    text, n = re.subn(r"^(\s*port: str = ).*$", lambda m: m.group(1) + repr(port), path.read_text(encoding="utf-8"), count=1, flags=re.M)
+    if n != 1:
+        raise SystemExit(f"{path} 에서 port 줄을 찾지 못했습니다.")
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 def parse_board(text: str) -> tuple[int, int]:

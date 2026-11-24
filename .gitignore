@@ -14,8 +14,14 @@ dist/
 # 텔레옵으로 모은 LeRobot 데이터셋 (용량 큼, 필요하면 HF Hub 로 공유)
 datasets/
 
-# 카메라 캘리브레이션 중 캡쳐한 이미지 (결과값은 각 config.py 에 저장됨)
+# 카메라 캘리브레이션 중 캡쳐한 이미지 (결과값은 각 config.py / extrinsic/<name>.py 에 저장됨)
 simulation/src/camera-cali/*/captures/
+simulation/src/camera-cali/*/charuco_captures/
+simulation/src/camera-cali/extrinsic/*_captures/
+
+# 캘리브레이션 중 버린 시도의 중간 파일 (pivot, 실패한 hand-eye 보드 자리)
+simulation/src/camera-cali/extrinsic/tip.json
+simulation/src/camera-cali/extrinsic/board_p1.json
 
 # image→3D third-party 코드와 생성 결과 (simulation/IMAGE_TO_3D.md 로 다시 받을 수 있음)
 simulation/third_party/

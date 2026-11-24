@@ -44,6 +44,11 @@ MuJoCo 트롤리 씬, 리더암 텔레옵, 카메라 캘리브레이션, 데이�
 .venv/bin/python src/camera-cali/intrinsic_cali.py wrist --board 9x6 --square 0.025
 ```
 
+- belly
+```
+.venv/bin/python src/camera-cali/intrinsic_cali.py belly --board 9x6 --square 0.025
+```
+
 ### head cam to robot base extrinsic calibration 
 모든 카메라의 포트 번호는 [config파일](src/camera-cali/)에서 각각 지정해주어야 한다.
 ```

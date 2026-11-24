@@ -7,7 +7,7 @@
     카메라가 본 보드의 자세와 합치면 카메라의 자세가 나온다.
 
     1. 먼저 intrinsic_cali.py top 으로 top 카메라의 내부 파라미터를 구해 둔다 (top_cam/config.py).
-    2. 이 스크립트를 띄우면 화면의 보드 위에 축이 그려진다. 빨강 = 보드 X, 초록 = 보드 Y.
+    2. 이 스크립트를 띄우면 화면의 보드 위에 축이 그려진다. 빨강 = 보드 X, 초록 = 보드 Y, 파랑 = 보드 면에 수직.
        축이 시작하는 꼭짓점(노란 점)이 보드 원점이다.
     3. 그 원점 꼭짓점의 위치를 재서 --origin X Y 로 준다 (m).
        기본은 트롤리 원점 꼭짓점 기준이고 (+X 손잡이 쪽, +Y 로봇 왼쪽, 상판 윗면이 Z=0),
@@ -124,9 +124,11 @@ def main() -> None:
         if found is None:
             return None
         T_cam_board, rvec, tvec, err = found
-        shown = rgb.copy()
+        # drawFrameAxes 는 BGR 로 칠한다 (x 빨강, y 초록, z 파랑). RGB 화면에 바로 그리면 x 와 z 색이 뒤바뀐다
+        shown = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
         cv2.drawFrameAxes(shown, K, dist, rvec, tvec, 3 * args.square, 3)
-        cv2.circle(shown, tuple(int(v) for v in corners[0]), 7, (255, 255, 0), -1)
+        cv2.circle(shown, tuple(int(v) for v in corners[0]), 7, (0, 255, 255), -1)
+        shown = cv2.cvtColor(shown, cv2.COLOR_BGR2RGB)
         T_frame_cam = board_pose_in_frame(T_cam_board, origin, args.yaw) @ np.linalg.inv(T_cam_board)
         return T_frame_cam, shown, err
 
